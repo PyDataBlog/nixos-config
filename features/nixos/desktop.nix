@@ -1,0 +1,4 @@
+{ ... }:
+{
+  imports = [ ../../nixosModules/desktop.nix ];
+}
