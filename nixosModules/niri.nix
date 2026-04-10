@@ -11,18 +11,21 @@ let
   ghosttyExe = lib.getExe pkgs.ghostty;
   noctaliaExe = lib.getExe inputs.noctalia.packages.${system}.default;
   playerctlExe = lib.getExe pkgs.playerctl;
-  renderOutput =
-    output: ''
-      output "${output.name}" {
-          mode "${output.mode}"
-          scale ${toString output.scale}
-      }
-    '';
+  renderOutput = output: ''
+    output "${output.name}" {
+        mode "${output.mode}"
+        scale ${toString output.scale}
+    }
+  '';
   outputConfig = lib.concatStringsSep "\n\n" (map renderOutput cfg.outputs);
   startNoctaliaExe = lib.getExe (
     pkgs.writeShellApplication {
       name = "start-noctalia";
-      runtimeInputs = [ pkgs.coreutils pkgs.gnugrep pkgs.procps ];
+      runtimeInputs = [
+        pkgs.coreutils
+        pkgs.gnugrep
+        pkgs.procps
+      ];
       text = ''
         current_uid="$(id -u)"
         current_root="$(dirname "$(dirname "${noctaliaExe}")")"
@@ -316,23 +319,25 @@ let
 in
 {
   options.repo.niri.outputs = lib.mkOption {
-    type = with lib.types; listOf (submodule {
-      options = {
-        name = lib.mkOption {
-          type = str;
-          description = "Niri output name.";
+    type =
+      with lib.types;
+      listOf (submodule {
+        options = {
+          name = lib.mkOption {
+            type = str;
+            description = "Niri output name.";
+          };
+          mode = lib.mkOption {
+            type = str;
+            description = "Niri output mode string.";
+          };
+          scale = lib.mkOption {
+            type = either int float;
+            default = 1;
+            description = "Niri output scale factor.";
+          };
         };
-        mode = lib.mkOption {
-          type = str;
-          description = "Niri output mode string.";
-        };
-        scale = lib.mkOption {
-          type = either int float;
-          default = 1;
-          description = "Niri output scale factor.";
-        };
-      };
-    });
+      });
     default = [ ];
     description = "Outputs rendered into the generated Niri config.";
   };

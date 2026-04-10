@@ -13,7 +13,12 @@
         inherit pkgsStable;
       };
       cli = import ../wrappers/cli.nix {
-        inherit inputs pkgs system pkgsStable;
+        inherit
+          inputs
+          pkgs
+          system
+          pkgsStable
+          ;
       };
       nvimApp = {
         type = "app";

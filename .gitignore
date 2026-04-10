@@ -1,3 +1,5 @@
 result
 result-*
 /.codex
+/.direnv
+/.pre-commit-config.yaml

@@ -49,14 +49,18 @@ let
       ;
   };
 
-  cliRuntimePackages = repoPackages.cli ++ repoPackages.languages ++ repoPackages.kubernetes ++ [
-    pkgs.carapace
-    pkgs.nix-index
-    pkgs.nushell
-    pkgs.starship
-    pkgs.tmux
-    pkgs.zoxide
-  ];
+  cliRuntimePackages =
+    repoPackages.cli
+    ++ repoPackages.languages
+    ++ repoPackages.kubernetes
+    ++ [
+      pkgs.carapace
+      pkgs.nix-index
+      pkgs.nushell
+      pkgs.starship
+      pkgs.tmux
+      pkgs.zoxide
+    ];
 in
 pkgs.runCommandLocal "portable-cli" { nativeBuildInputs = [ pkgs.makeWrapper ]; } ''
     mkdir -p "$out/bin" "$out/share"

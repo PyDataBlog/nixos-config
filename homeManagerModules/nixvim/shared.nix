@@ -1,4 +1,10 @@
-{ claudeCodePkg, codexPkg, lib, pkgs, ... }:
+{
+  claudeCodePkg,
+  codexPkg,
+  lib,
+  pkgs,
+  ...
+}:
 let
   repoPackages = import ../../packages {
     inherit pkgs lib;
@@ -53,6 +59,7 @@ in
       ffmpeg
       git
       gitleaks
+      glow
       gofumpt
       pkgs."golangci-lint"
       golines
@@ -69,6 +76,7 @@ in
       markdown-toc
       markdownlint-cli2
       marksman
+      mermaid-cli
       mediainfo
       nushell
       opencode
@@ -81,6 +89,7 @@ in
       procps
       pkgs.python3Packages.debugpy
       ripgrep
+      rich-cli
       ruff
       pkgs."rust-analyzer"
       shellcheck
@@ -93,6 +102,7 @@ in
       tectonic
       pkgs."terraform-ls"
       texlab
+      timg
       tflint
       tmux
       ty

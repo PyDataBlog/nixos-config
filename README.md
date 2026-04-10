@@ -132,6 +132,27 @@ nix build --no-link '.#nixosConfigurations.desktop.config.environment.etc."niri/
 nix shell nixpkgs#niri --command sh -lc 'niri validate -c /nix/store/...-niri-config.kdl'
 ```
 
+## Local formatting and hooks
+
+Formatting is exposed through:
+
+```bash
+nix fmt
+```
+
+Local Git hooks are managed through Nix as well. Entering the dev shell installs the hooks:
+
+```bash
+nix develop
+```
+
+Enabled hooks:
+
+- `treefmt`
+- `deadnix`
+
+With `direnv` enabled, `.envrc` activates the same shell automatically.
+
 ## Standalone Wrappers
 
 Anything exposed from `wrappers/` is intended to be a standalone shared artifact.
@@ -176,10 +197,10 @@ After installing `.#cli`, the package exposes:
 Once the repo is published remotely, the standalone targets can be used as:
 
 ```bash
-nix run github:<user>/<repo>#cli
-nix run github:<user>/<repo>#nixvim
-nix profile install github:<user>/<repo>#cli
-nix profile install github:<user>/<repo>#nixvim
+nix run github:PyDataBlog/nixos-config#cli
+nix run github:PyDataBlog/nixos-config#nixvim
+nix profile install github:PyDataBlog/nixos-config#cli
+nix profile install github:PyDataBlog/nixos-config#nixvim
 ```
 
 ## Package Placement

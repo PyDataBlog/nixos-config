@@ -666,9 +666,21 @@
       local has_local_session = vim.fn.filereadable(local_session_path) == 1
 
       return {
-        action = has_local_session and ('lua MiniSessions.read(' .. vim.inspect(local_session_name) .. ')') or "",
+        action = has_local_session and function()
+          MiniSessions.read(local_session_name)
+        end or "",
         name = 's    Restore Local Session',
-        section = 'Quick actions',
+        section = "",
+      }
+    end
+
+    local session_picker_item = function()
+      return {
+        action = function()
+          MiniSessions.select('read')
+        end,
+        name = 'm  󰆓  Session Picker',
+        section = "",
       }
     end
 
@@ -686,28 +698,29 @@
         {
           action = 'Pick files',
           name = 'f  󰱼  Find File',
-          section = 'Quick actions',
+          section = "",
         },
         {
           action = 'enew | startinsert',
           name = 'n    New File',
-          section = 'Quick actions',
+          section = "",
         },
         {
           action = 'Pick grep_live',
           name = 'g    Find Text',
-          section = 'Quick actions',
+          section = "",
         },
         {
           action = 'Pick oldfiles',
           name = 'r    Recent Files',
-          section = 'Quick actions',
+          section = "",
         },
         session_item,
+        session_picker_item,
         {
           action = 'qall',
           name = 'q    Quit',
-          section = 'Quick actions',
+          section = "",
         },
       },
       footer = "",

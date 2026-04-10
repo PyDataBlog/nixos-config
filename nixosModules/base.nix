@@ -24,19 +24,17 @@ let
     dayTemperature = 6500;
     nightTemperature = 3700;
   };
-  mkLocaleSettings =
-    locale:
-    {
-      LC_ADDRESS = locale;
-      LC_IDENTIFICATION = locale;
-      LC_MEASUREMENT = locale;
-      LC_MONETARY = locale;
-      LC_NAME = locale;
-      LC_NUMERIC = locale;
-      LC_PAPER = locale;
-      LC_TELEPHONE = locale;
-      LC_TIME = locale;
-    };
+  mkLocaleSettings = locale: {
+    LC_ADDRESS = locale;
+    LC_IDENTIFICATION = locale;
+    LC_MEASUREMENT = locale;
+    LC_MONETARY = locale;
+    LC_NAME = locale;
+    LC_NUMERIC = locale;
+    LC_PAPER = locale;
+    LC_TELEPHONE = locale;
+    LC_TIME = locale;
+  };
   cfg = config.repo.user;
   localeCfg = config.repo.locale;
   secretsCfg = config.repo.secrets;
@@ -194,7 +192,10 @@ in
       }
     ];
 
-    nix.settings.experimental-features = [ "nix-command" "flakes" ];
+    nix.settings.experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
     nixpkgs.config.allowUnfree = true;
     nixpkgs.config.permittedInsecurePackages = [ "ventoy-gtk3-1.1.10" ];
 
@@ -233,7 +234,8 @@ in
     time.timeZone = localeCfg.timeZone;
 
     i18n.defaultLocale = localeCfg.defaultLocale;
-    i18n.extraLocaleSettings = mkLocaleSettings localeCfg.defaultLocale // localeCfg.extraLocaleSettings;
+    i18n.extraLocaleSettings =
+      mkLocaleSettings localeCfg.defaultLocale // localeCfg.extraLocaleSettings;
 
     services.printing = {
       enable = true;
@@ -271,17 +273,16 @@ in
     programs.firefox.enable = true;
 
     users.users = {
-      ${cfg.username} =
-        {
-          isNormalUser = true;
-          description = cfg.description;
-          extraGroups = cfg.extraGroups;
-          home = cfg.homeDirectory;
-          shell = pkgs.nushell;
-        }
-        // lib.optionalAttrs (secretsCfg.userPasswordHashKey != null) {
-          hashedPasswordFile = config.sops.secrets.${secretsCfg.userPasswordHashKey}.path;
-        };
+      ${cfg.username} = {
+        isNormalUser = true;
+        description = cfg.description;
+        extraGroups = cfg.extraGroups;
+        home = cfg.homeDirectory;
+        shell = pkgs.nushell;
+      }
+      // lib.optionalAttrs (secretsCfg.userPasswordHashKey != null) {
+        hashedPasswordFile = config.sops.secrets.${secretsCfg.userPasswordHashKey}.path;
+      };
     };
 
     home-manager = {

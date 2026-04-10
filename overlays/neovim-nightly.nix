@@ -1,2 +1,1 @@
-{ inputs }:
-inputs.neovim-nightly-overlay.overlays.default
+{ inputs }: inputs.neovim-nightly-overlay.overlays.default

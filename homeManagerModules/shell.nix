@@ -117,8 +117,7 @@
       cc = "claude";
       claudecode = "claude";
       g = "git";
-      k = "kubecolor";
-      kubectl = "kubecolor";
+      k = "kubectl";
       ls = "eza --icons=always";
       ll = "eza -la --icons=always";
       la = "eza -a --icons=always";
@@ -140,6 +139,7 @@
     settings = {
       add_newline = false;
       format = "$directory$git_branch$git_status$nix_shell$line_break$character";
+      right_format = "$kubernetes";
       character = {
         success_symbol = "[>](bold white)";
         error_symbol = "[x](bold red)";
@@ -156,6 +156,46 @@
       };
       nix_shell = {
         format = "[nix:$name]($style) ";
+      };
+      kubernetes = {
+        disabled = false;
+        format = "[$symbol$context(::$namespace)]($style)";
+        style = "bold cyan";
+        symbol = "☸ ";
+        contexts = [
+          {
+            context_pattern = "k3d-(?P<cluster>[\\w-]+)";
+            context_alias = "k3d:$cluster";
+            style = "bold green";
+          }
+          {
+            context_pattern = "kind-(?P<cluster>[\\w-]+)";
+            context_alias = "kind:$cluster";
+            style = "bold green";
+          }
+          {
+            context_pattern = "minikube";
+            context_alias = "minikube";
+            style = "bold green";
+          }
+          {
+            context_pattern = "docker-desktop";
+            context_alias = "docker-desktop";
+            style = "bold green";
+          }
+          {
+            context_pattern = ".*(prod|production).*";
+            style = "bold red";
+          }
+          {
+            context_pattern = ".*(stage|staging).*";
+            style = "bold yellow";
+          }
+          {
+            context_pattern = ".*(dev|development).*";
+            style = "bold blue";
+          }
+        ];
       };
     };
   };

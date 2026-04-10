@@ -6,15 +6,34 @@
   codexPkg,
 }:
 let
+  kubectlWrapped = pkgs.writeShellApplication {
+    name = "kubectl";
+    runtimeInputs = [
+      pkgs.kubecolor
+      pkgs.kubectl
+    ];
+    text = ''
+      if [ -t 1 ] && [ -z "''${NO_COLOR-}" ]; then
+        exec ${pkgs.kubecolor}/bin/kubecolor "$@"
+      fi
+
+      exec ${pkgs.kubectl}/bin/kubectl "$@"
+    '';
+  };
   cli =
     (with pkgs; [
       age
+      act
       ast-grep
+      azure-cli
+      azure-storage-azcopy
       bat
       broot
       btop
       bubblewrap
+      cargo-release
       chafa
+      cmake
       direnv
       eza
       exiftool
@@ -25,13 +44,16 @@ let
       fzf
       gh
       git
+      glow
       grpcurl
       grc
       hatch
+      helix
       imagemagick
       jq
       just
       lazygit
+      mermaid-cli
       mediainfo
       mkpasswd
       nh
@@ -47,11 +69,14 @@ let
       p7zip
       pandoc
       pkgs."poppler-utils"
+      presenterm
       ripgrep
+      rich-cli
       sops
       ssh-to-age
       tectonic
       texlab
+      timg
       tree-sitter
       trash-cli
       unzip
@@ -77,7 +102,7 @@ let
     k9s
     k3d
     kind
-    kubectl
+    kubectlWrapped
     kubecolor
     kubectx
     kubelogin-oidc
@@ -106,10 +131,13 @@ in
   inherit cli;
   inherit kubernetes;
   inherit languages;
+  inherit kubectlWrapped;
 
   desktop = with pkgs; [
+    antigravity
     cudaPackages.cudatoolkit
     nvtopPackages.nvidia
     ventoy-full-gtk
+    vscode
   ];
 }
