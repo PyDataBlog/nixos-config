@@ -32,6 +32,14 @@
     latitude = "55.6761";
     longitude = "12.5683";
   };
+  repo.idle = lib.mkDefault {
+    lockSeconds = 600;
+    monitorOffSeconds = 630;
+  };
+  repo.nightLight = lib.mkDefault {
+    dayTemperature = 6500;
+    nightTemperature = 3700;
+  };
   repo.secrets = lib.mkDefault {
     sopsFile = ../../secrets/desktop.yaml;
     userPasswordHashKey = "user-password-hash";

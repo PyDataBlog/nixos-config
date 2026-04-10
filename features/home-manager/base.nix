@@ -1,7 +1,7 @@
 { ... }:
 {
   imports = [
-    ../../homeManagerModules/base.nix
+    ../../homeManagerModules/core.nix
     ../../homeManagerModules/packages.nix
   ];
 }

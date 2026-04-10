@@ -16,6 +16,14 @@ let
     longitude = "12.5683";
     name = "Copenhagen, Denmark";
   };
+  defaultIdle = {
+    lockSeconds = 600;
+    monitorOffSeconds = 630;
+  };
+  defaultNightLight = {
+    dayTemperature = 6500;
+    nightTemperature = 3700;
+  };
   mkLocaleSettings =
     locale:
     {
@@ -119,6 +127,34 @@ in
       };
     };
 
+    idle = {
+      lockSeconds = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = defaultIdle.lockSeconds;
+        description = "Idle timeout before locking the session.";
+      };
+
+      monitorOffSeconds = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = defaultIdle.monitorOffSeconds;
+        description = "Idle timeout before turning monitors off.";
+      };
+    };
+
+    nightLight = {
+      dayTemperature = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = defaultNightLight.dayTemperature;
+        description = "Daytime color temperature for location-aware night light.";
+      };
+
+      nightTemperature = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = defaultNightLight.nightTemperature;
+        description = "Nighttime color temperature for location-aware night light.";
+      };
+    };
+
     secrets = {
       sopsFile = lib.mkOption {
         type = lib.types.nullOr lib.types.path;
@@ -152,10 +188,15 @@ in
         assertion = secretsCfg.userPasswordHashKey == null || secretsCfg.sopsFile != null;
         message = "Set repo.secrets.sopsFile when repo.secrets.userPasswordHashKey is used.";
       }
+      {
+        assertion = config.repo.idle.monitorOffSeconds > config.repo.idle.lockSeconds;
+        message = "Set repo.idle.monitorOffSeconds higher than repo.idle.lockSeconds.";
+      }
     ];
 
     nix.settings.experimental-features = [ "nix-command" "flakes" ];
     nixpkgs.config.allowUnfree = true;
+    nixpkgs.config.permittedInsecurePackages = [ "ventoy-gtk3-1.1.10" ];
 
     programs.nh = {
       enable = true;

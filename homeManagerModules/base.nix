@@ -12,13 +12,15 @@ let
   noctaliaExe = lib.getExe inputs.noctalia.packages.${system}.default;
   wlsunsetExe = lib.getExe pkgs.wlsunset;
   location = osConfig.repo.location;
+  idle = osConfig.repo.idle;
+  nightLight = osConfig.repo.nightLight;
   swayidleSessionExe = lib.getExe (
     pkgs.writeShellApplication {
       name = "niri-idle-session";
       text = ''
         exec "${lib.getExe pkgs.swayidle}" -w \
-          timeout 600 '${noctaliaExe} ipc call lockScreen lock' \
-          timeout 630 '${niriExe} msg action power-off-monitors' resume '${niriExe} msg action power-on-monitors' \
+          timeout ${toString idle.lockSeconds} '${noctaliaExe} ipc call lockScreen lock' \
+          timeout ${toString idle.monitorOffSeconds} '${niriExe} msg action power-off-monitors' resume '${niriExe} msg action power-on-monitors' \
           before-sleep '${noctaliaExe} ipc call lockScreen lock'
       '';
     }
@@ -129,7 +131,7 @@ in
       Requisite = [ "niri.service" ];
     };
     Service = {
-      ExecStart = "${wlsunsetExe} -l ${location.latitude} -L ${location.longitude} -T 6500 -t 3700";
+      ExecStart = "${wlsunsetExe} -l ${location.latitude} -L ${location.longitude} -T ${toString nightLight.dayTemperature} -t ${toString nightLight.nightTemperature}";
       Restart = "on-failure";
     };
     Install.WantedBy = [ "niri.service" ];

@@ -154,6 +154,12 @@ in
     (mkCmdNmap "<leader>fS" "Pick lsp scope=\"document_symbol\"" "Document symbols")
     (mkCmdNmap "<leader>fv" "Pick visit_paths cwd=\"\"" "Visited paths")
     (mkCmdNmap "<leader>fV" "Pick visit_paths" "Visited paths in cwd")
+    (mkLuaNmap "<leader>fq" "function() require('grug-far').open() end" "Find and replace")
+    (
+      mkLuaNmap "<leader>fQ"
+        "function() require('grug-far').open({ prefills = { paths = vim.fn.expand('%') } }) end"
+        "Find and replace in buffer"
+    )
     (mkCmdNmap "<leader>gg" "TermToggleLazygit" "Lazygit toggle")
     (mkCmdNmap "<leader>ga" "Git diff --cached" "Git diff staged")
     (mkCmdNmap "<leader>gA" "Git diff --cached -- %" "Git diff staged buffer")
@@ -168,6 +174,8 @@ in
     )
     (mkLuaNmap "<leader>go" "function() MiniDiff.toggle_overlay() end" "Toggle diff overlay")
     (mkLuaNmap "<leader>gs" "function() MiniGit.show_at_cursor() end" "Show git info")
+    (mkLuaNmap "<leader>kk" "function() require('kubectl').toggle({ tab = false }) end" "kubectl toggle")
+    (mkLuaNmap "<leader>kK" "function() require('kubectl').toggle({ tab = true }) end" "kubectl toggle in tab")
     (mkLuaNmap "<leader>db" "function() require('dap').toggle_breakpoint() end" "Toggle breakpoint")
     (
       mkLuaNmap "<leader>dB"
@@ -217,6 +225,8 @@ in
     (mkLuaNmap "<leader>li" "function() vim.lsp.buf.implementation() end" "Implementation")
     (mkLuaNmap "<leader>ll" "function() require('lint').try_lint() end" "Lint buffer")
     (mkLuaNmap "<leader>lL" "function() vim.lsp.codelens.run() end" "Run code lens")
+    (mkCmdNmap "<leader>lM" "RenderMarkdown toggle" "Markdown render toggle")
+    (mkCmdNmap "<leader>lP" "MarkdownPreviewToggle" "Markdown preview toggle")
     (mkLuaNmap "<leader>lr" "function() vim.lsp.buf.rename() end" "Rename")
     (mkLuaNmap "<leader>lR" "function() vim.lsp.buf.references() end" "References")
     (mkLuaNmap "<leader>ls" "function() vim.lsp.buf.definition() end" "Source definition")
@@ -240,6 +250,9 @@ in
     (mkLuaNmap "<leader>nS" "function() require('neotest').run.run(vim.fn.getcwd()) end" "Run test suite")
     (mkLuaNmap "<leader>nw" "function() require('neotest').watch.toggle(vim.fn.expand('%')) end" "Watch test file")
     (mkCmdNmap "<leader>oa" "OverseerTaskAction" "Overseer task action")
+    (mkCmdNmap "<leader>ob" "DBUIFindBuffer" "Find DBUI buffer")
+    (mkCmdNmap "<leader>od" "DBUIToggle" "Database UI toggle")
+    (mkCmdNmap "<leader>oD" "DBUIAddConnection" "Add database connection")
     (mkCmdNmap "<leader>oo" "OverseerToggle! right" "Toggle Overseer task list")
     (mkCmdNmap "<leader>or" "OverseerRun" "Run Overseer task")
     (mkCmdNmap "<leader>oR" "OverseerRestartLast" "Restart last Overseer task")
@@ -247,14 +260,28 @@ in
     (mkLuaNmap "<leader>ot" "function() MiniTrailspace.trim() end" "Trim trailing whitespace")
     (mkLuaNmap "<leader>ow" "function() MiniMisc.resize_window() end" "Resize to default width")
     (mkLuaNmap "<leader>oz" "function() MiniMisc.zoom() end" "Toggle zoom")
+    (mkLuaNmap "<leader>ra" "function() require('kulala').run_all() end" "Run all requests")
+    (mkLuaNmap "<leader>rb" "function() require('kulala').open() end" "Request scratchpad")
+    (mkLuaNmap "<leader>rc" "function() require('kulala').copy() end" "Copy as curl")
+    (mkLuaNmap "<leader>ri" "function() require('kulala').inspect() end" "Inspect request")
+    (mkLuaNmap "<leader>rr" "function() require('kulala').run() end" "Run request")
+    (mkLuaNmap "<leader>rR" "function() require('kulala').replay() end" "Replay request")
+    (mkLuaNmap "<leader>rs" "function() require('kulala').show_stats() end" "Show request stats")
+    (mkLuaNmap "<leader>ry" "function() require('kulala').from_curl() end" "Import from curl")
     (mkLuaNmap "<leader>sd" "function() MiniSessions.select('delete') end" "Delete session")
     (
       mkLuaNmap "<leader>sn" "function() vim.ui.input({ prompt = 'Session name: ' }, MiniSessions.write) end"
-        "New session"
+        "Write named session"
     )
-    (mkLuaNmap "<leader>sr" "function() MiniSessions.select('read') end" "Read session")
+    (
+      mkLuaNmap "<leader>sr" "function() MiniSessions.read() end"
+        "Read default session"
+    )
     (mkLuaNmap "<leader>sR" "function() MiniSessions.restart() end" "Restart into session")
-    (mkLuaNmap "<leader>sw" "function() MiniSessions.write() end" "Write current session")
+    (
+      mkLuaNmap "<leader>sw" "function() MiniSessions.write(MiniSessions.config.file) end"
+        "Write local session"
+    )
     (mkCmdNmap "<leader>tt" "TermToggleVertical" "Toggle vertical terminal")
     (mkCmdNmap "<leader>tT" "TermToggleHorizontal" "Toggle horizontal terminal")
     (mkCmdNmap "<leader>tf" "TermToggleFloat" "Toggle floating terminal")
@@ -316,6 +343,7 @@ in
       mkLuaXmap "<leader>av" "function() require('sidekick.cli').send({ msg = '{selection}' }) end"
         "Send selection to Sidekick"
     )
+    (mkLuaXmap "<leader>fq" "function() require('grug-far').open() end" "Find and replace selection")
     (mkLuaXmap "<leader>ds" "function() require('dap-python').debug_selection() end" "Debug selection")
     (mkLuaXmap "<leader>gs" "function() MiniGit.show_at_cursor() end" "Show git info")
   ];

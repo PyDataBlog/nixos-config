@@ -8,6 +8,8 @@ let
   lib = pkgs.lib;
   repoPackages = import ../packages {
     inherit pkgs pkgsStable lib;
+    claudeCodePkg = inputs.claude-code-nix.packages.${pkgs.stdenv.hostPlatform.system}.claude-code;
+    codexPkg = inputs.codex-cli-nix.packages.${pkgs.stdenv.hostPlatform.system}.codex;
   };
 
   shellHome = inputs.home-manager.lib.homeManagerConfiguration {
@@ -47,7 +49,7 @@ let
       ;
   };
 
-  cliRuntimePackages = repoPackages.cli ++ [
+  cliRuntimePackages = repoPackages.cli ++ repoPackages.languages ++ repoPackages.kubernetes ++ [
     pkgs.carapace
     pkgs.nix-index
     pkgs.nushell
@@ -81,6 +83,8 @@ pkgs.runCommandLocal "portable-cli" { nativeBuildInputs = [ pkgs.makeWrapper ]; 
       --set NIXVIM_SHELL "$out/bin/nu" \
       --set SHELL "$out/bin/nu" \
       --set STARSHIP_CONFIG ${starshipConfig} \
+      --set UV_NO_MANAGED_PYTHON 1 \
+      --set UV_PYTHON_DOWNLOADS never \
       --set VISUAL nvim
 
     ln -s "$out/bin/nvim" "$out/bin/vim"
@@ -93,6 +97,8 @@ pkgs.runCommandLocal "portable-cli" { nativeBuildInputs = [ pkgs.makeWrapper ]; 
       --set NIXVIM_SHELL "$out/bin/nu" \
       --set SHELL "$out/bin/nu" \
       --set STARSHIP_CONFIG ${starshipConfig} \
+      --set UV_NO_MANAGED_PYTHON 1 \
+      --set UV_PYTHON_DOWNLOADS never \
       --set VISUAL nvim
 
     makeWrapper ${pkgs.nushell}/bin/nu "$out/bin/nu" \
@@ -102,6 +108,8 @@ pkgs.runCommandLocal "portable-cli" { nativeBuildInputs = [ pkgs.makeWrapper ]; 
       --set NIXVIM_SHELL "$out/bin/nu" \
       --set SHELL "$out/bin/nu" \
       --set STARSHIP_CONFIG ${starshipConfig} \
+      --set UV_NO_MANAGED_PYTHON 1 \
+      --set UV_PYTHON_DOWNLOADS never \
       --set VISUAL nvim
 
     ln -s "$out/bin/nu" "$out/bin/portable-cli"

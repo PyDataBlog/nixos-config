@@ -4,31 +4,31 @@ This repo is set up so the encrypted secrets live in Git, while decryption is
 possible through:
 
 - the machine host key
-- your personal age key in `~/.config/sops/age/keys.txt`
+- a personal age key in `~/.config/sops/age/keys.txt`
 
 For this repo, the most important recovery asset is:
 
 - `~/.config/sops/age/keys.txt`
 
-Back that file up outside the machine.
+That file should be backed up outside the machine.
 
-## What You Need
+## Required Inputs
 
-To recover this system after a reinstall, you need:
+To recover this system after a reinstall, the required inputs are:
 
 - the Git repository
-- your backup of `~/.config/sops/age/keys.txt`
+- a backup of `~/.config/sops/age/keys.txt`
 
-You do not need the old machine host key if your personal age key is available.
+The old machine host key is not required if the personal age key is available.
 
 ## Same Desktop Recovery
 
-If you formatted the current desktop and want the whole system back:
+If the current desktop is reformatted and the goal is to restore the full system:
 
 1. Install base NixOS.
 2. Get networking working.
 3. Clone the repo.
-4. Restore your personal age key:
+4. Restore the personal age key:
 
    ```bash
    mkdir -p ~/.config/sops/age
@@ -53,11 +53,11 @@ If `/etc/ssh/ssh_host_ed25519_key` changed during reinstall, the current
 encrypted secret file from Git will still be present, but the machine recipient
 inside it will be stale.
 
-That is why the personal age key exists.
+That is the purpose of the personal age key.
 
 Recovery flow:
 
-1. Restore your personal age key:
+1. Restore the personal age key:
 
    ```bash
    mkdir -p ~/.config/sops/age
@@ -65,7 +65,7 @@ Recovery flow:
    chmod 600 ~/.config/sops/age/keys.txt
    ```
 
-2. Verify you can decrypt the secret as your normal user:
+2. Verify that the secret can be decrypted as the normal user:
 
    ```bash
    SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt sops -d secrets/desktop.yaml
@@ -77,7 +77,7 @@ Recovery flow:
    ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub
    ```
 
-4. Add the new host recipient to the secret using your personal key:
+4. Add the new host recipient to the secret using the personal key:
 
    ```bash
    SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt sops rotate -i --add-age <new-host-age-recipient> secrets/desktop.yaml
@@ -91,12 +91,12 @@ Recovery flow:
 
 At that point, the machine can decrypt secrets again through its new host key.
 
-## If You Lose `keys.txt`
+## If `keys.txt` Is Lost
 
-If you lose your personal age key backup, recovery falls back to the machine
+If the personal age key backup is lost, recovery falls back to the machine
 host key path only.
 
-That means you would need the old host key material to keep decrypting the
+That means the old host key material is required to keep decrypting the
 tracked secrets after a reinstall.
 
 So the practical backup rule is simple:

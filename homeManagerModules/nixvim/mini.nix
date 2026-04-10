@@ -660,12 +660,14 @@
     schedule_refresh_laststatus()
 
     local session_item = function()
-      local detected = (_G.MiniSessions or {}).detected or {}
-      local has_sessions = vim.tbl_count(detected) > 0
+      local session_config = (_G.MiniSessions or {}).config or {}
+      local local_session_name = session_config.file or 'Session.vim'
+      local local_session_path = vim.fs.joinpath(vim.fn.getcwd(), local_session_name)
+      local has_local_session = vim.fn.filereadable(local_session_path) == 1
 
       return {
-        action = has_sessions and 'lua MiniSessions.select("read")' or "",
-        name = 's    Restore Session',
+        action = has_local_session and ('lua MiniSessions.read(' .. vim.inspect(local_session_name) .. ')') or "",
+        name = 's    Restore Local Session',
         section = 'Quick actions',
       }
     end
@@ -724,16 +726,19 @@
         { mode = 'n', keys = '<Leader>e', desc = '+Explore/Edit' },
         { mode = 'n', keys = '<Leader>f', desc = '+Find' },
         { mode = 'n', keys = '<Leader>g', desc = '+Git' },
+        { mode = 'n', keys = '<Leader>k', desc = '+Kube' },
         { mode = 'n', keys = '<Leader>l', desc = '+Language' },
         { mode = 'n', keys = '<Leader>m', desc = '+Map' },
         { mode = 'n', keys = '<Leader>n', desc = '+Test' },
         { mode = 'n', keys = '<Leader>o', desc = '+Ops' },
         { mode = 'n', keys = '<Leader>q', desc = '+Quit' },
+        { mode = 'n', keys = '<Leader>r', desc = '+Request' },
         { mode = 'n', keys = '<Leader>s', desc = '+Session' },
         { mode = 'n', keys = '<Leader>t', desc = '+Terminal' },
         { mode = 'n', keys = '<Leader>v', desc = '+Visits' },
         { mode = 'x', keys = '<Leader>a', desc = '+AI' },
         { mode = 'x', keys = '<Leader>d', desc = '+Debug' },
+        { mode = 'x', keys = '<Leader>f', desc = '+Find' },
         { mode = 'x', keys = '<Leader>g', desc = '+Git' },
         { mode = 'x', keys = '<Leader>l', desc = '+Language' },
         miniclue.gen_clues.builtin_completion(),

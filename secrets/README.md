@@ -5,14 +5,21 @@ This repo uses `sops-nix` for host secrets.
 Typical password bootstrap flow for a new host:
 
 ```bash
-# Convert the host SSH public key into an age recipient
-ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub
+HASH="$(mkpasswd)"
+RECIPIENT="$(ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub)"
 
-# Generate a password hash
-mkpasswd
+cat > /tmp/host-secrets.yaml <<EOF
+user-password-hash: "$HASH"
+EOF
 
-# Edit the encrypted host secrets file
-sops secrets/<host>.yaml
+sops --encrypt \
+  --age "$RECIPIENT" \
+  --input-type yaml \
+  --output-type yaml \
+  /tmp/host-secrets.yaml > secrets/<host>.yaml
+
+rm /tmp/host-secrets.yaml
+git add secrets/<host>.yaml
 ```
 
 Example encrypted payload:
@@ -33,3 +40,8 @@ Then point the host config at it:
   };
 }
 ```
+
+Important:
+
+- Git-backed flakes do not see untracked files
+- stage the encrypted `secrets/<host>.yaml` before building

@@ -1,5 +1,10 @@
 { pkgs, ... }:
 {
+  home.sessionVariables = {
+    UV_NO_MANAGED_PYTHON = "1";
+    UV_PYTHON_DOWNLOADS = "never";
+  };
+
   programs.tmux = {
     enable = true;
     baseIndex = 1;
@@ -66,6 +71,12 @@
     ignoreCase = true;
   };
 
+  programs.direnv = {
+    enable = true;
+    enableNushellIntegration = true;
+    nix-direnv.enable = true;
+  };
+
   programs.nix-index = {
     enableNushellIntegration = true;
   };
@@ -103,11 +114,16 @@
     };
     shellAliases = {
       cat = "bat --paging=never --style=plain";
+      cc = "claude";
+      claudecode = "claude";
       g = "git";
+      k = "kubecolor";
+      kubectl = "kubecolor";
       ls = "eza --icons=always";
       ll = "eza -la --icons=always";
       la = "eza -a --icons=always";
       lt = "eza --tree --icons=always";
+      oc = "opencode";
       tree = "eza --tree --icons=always";
       v = "nvim";
       vi = "nvim";

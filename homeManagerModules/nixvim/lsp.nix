@@ -202,6 +202,7 @@
       };
       nixd.enable = true;
       taplo.enable = true;
+      texlab.enable = true;
       yamlls = {
         enable = true;
         settings = {

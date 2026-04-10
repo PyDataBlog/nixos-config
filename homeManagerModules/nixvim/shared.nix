@@ -1,4 +1,10 @@
-{ lib, pkgs, ... }:
+{ claudeCodePkg, codexPkg, lib, pkgs, ... }:
+let
+  repoPackages = import ../../packages {
+    inherit pkgs lib;
+    inherit claudeCodePkg codexPkg;
+  };
+in
 {
   imports = [
     ./options.nix
@@ -11,6 +17,11 @@
     ./overseer.nix
     ./terminal-tools.nix
     ./treesitter.nix
+    ./search.nix
+    ./kube.nix
+    ./markdown.nix
+    ./requests.nix
+    ./sql.nix
     ./codecompanion.nix
     ./runtime-files.nix
   ];
@@ -19,12 +30,17 @@
 
   # Keep the wrapped editor usable on a plain Linux machine with only Nix.
   extraPackages = lib.unique (
-    with pkgs;
-    [
+    repoPackages.languages
+    ++ repoPackages.kubernetes
+    ++ (with pkgs; [
+      ast-grep
       pkgs."bash-language-server"
-      codex
+      bubblewrap
+      codexPkg
+      claudeCodePkg
       copilot-language-server
       curl
+      chafa
       bashunit
       checkmake
       deadnix
@@ -32,7 +48,9 @@
       djlint
       pkgs."docker-compose-language-service"
       pkgs."dockerfile-language-server"
+      exiftool
       fd
+      ffmpeg
       git
       gitleaks
       gofumpt
@@ -40,15 +58,23 @@
       golines
       gopls
       gosimports
+      grpcurl
       hadolint
       pkgs."helm-ls"
+      imagemagick
+      jq
       lazygit
       lsof
       pkgs."lua-language-server"
       markdown-toc
       markdownlint-cli2
       marksman
+      mediainfo
       nushell
+      opencode
+      openssl
+      pandoc
+      pkgs."poppler-utils"
       prettier
       prettierd
       presenterm
@@ -57,7 +83,6 @@
       ripgrep
       ruff
       pkgs."rust-analyzer"
-      rustfmt
       shellcheck
       shfmt
       sqlfluff
@@ -65,20 +90,23 @@
       statix
       stylua
       taplo
-      terraform
+      tectonic
       pkgs."terraform-ls"
+      texlab
       tflint
       tmux
       ty
       pkgs."typos-lsp"
+      websocat
       pkgs."vscode-langservers-extracted"
       wl-clipboard
       pkgs."yaml-language-server"
       yamllint
       xclip
       xsel
+      xdg-utils
+      yt-dlp
       zls
-      zig
-    ]
+    ])
   );
 }
