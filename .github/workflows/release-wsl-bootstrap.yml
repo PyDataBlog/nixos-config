@@ -1,6 +1,9 @@
 name: Release WSL Bootstrap
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       tag:
@@ -62,9 +65,12 @@ jobs:
           mv nixos.wsl nixos-wsl-bootstrap-x86_64-linux.wsl
 
       - name: Create or update release
-        env:
-          TAG: ${{ inputs.tag }}
         run: |
+          TAG="${{ inputs.tag }}"
+          if [ -z "$TAG" ]; then
+            TAG="wslbootstrap-main"
+          fi
+
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" nixos-wsl-bootstrap-x86_64-linux.wsl --clobber
           else

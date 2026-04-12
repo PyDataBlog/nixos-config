@@ -1,6 +1,6 @@
 # nixos-config
 
-Desktop-first NixOS flake for one machine and a host-selected primary user declared in NixOS.
+Desktop-first NixOS flake with multiple host targets and a host-selected primary user declared in NixOS.
 
 Current scope:
 
@@ -72,10 +72,10 @@ Host secrets are managed with `sops-nix`.
 - Configure the decryption identity with standard `sops.age.*` options in the host module
 - Track the encrypted secret file in Git before building from a git-backed flake
 
-The portable CLI environment ships the required tools:
+The standalone CLI wrapper ships the required tools:
 
 ```bash
-portable-cli -c 'which sops; which age; which ssh-to-age; which mkpasswd'
+nix run .#cli -- -c 'which sops; which age; which ssh-to-age; which mkpasswd'
 ```
 
 Concrete bootstrap flow for a new host:
