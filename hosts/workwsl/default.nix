@@ -11,9 +11,13 @@
 
   networking.hostName = "workwsl";
 
-  wsl.defaultUser = "bebr";
+  wsl.defaultUser = repoLib.primaryUser.username;
+
+  security.sudo.wheelNeedsPassword = lib.mkForce true;
 
   programs.nix-ld.enable = true;
+
+  sops.age.keyFile = lib.mkDefault "${repoLib.primaryUser.homeDirectory}/.config/sops/age/keys.txt";
 
   repo.user = lib.mkDefault (
     repoLib.primaryUser
@@ -29,8 +33,8 @@
   };
 
   repo.secrets = lib.mkDefault {
-    sopsFile = null;
-    userPasswordHashKey = null;
+    sopsFile = ../../secrets/desktop.yaml;
+    userPasswordHashKey = "user-password-hash";
   };
 
   system.stateVersion = "25.11";

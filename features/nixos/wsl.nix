@@ -1,6 +1,5 @@
 {
   inputs,
-  lib,
   ...
 }:
 {
@@ -10,8 +9,6 @@
   ];
 
   config = {
-    security.sudo.wheelNeedsPassword = lib.mkDefault false;
-
     wsl = {
       enable = true;
       interop.includePath = false;

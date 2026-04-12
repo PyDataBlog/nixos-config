@@ -4,7 +4,10 @@ Desktop-first NixOS flake for one machine and a host-selected primary user decla
 
 Current scope:
 
-- one host: `desktop`
+- three hosts:
+  - `desktop`
+  - `wslbootstrap`
+  - `workwsl`
 - one primary user chosen per host
 - `nixos-unstable` as the main package set
 - `nixos-25.11` available as `pkgsStable`
@@ -15,9 +18,10 @@ Current scope:
 - Ghostty + Nushell + Starship
 - Nixvim with a MiniMax-inspired baseline
 
-Planned next host:
+WSL support:
 
-- `workwsl` via NixOS-WSL as a terminal-first host, tracked in [WORKWSL_PLAN.md](./WORKWSL_PLAN.md)
+- `wslbootstrap` is the minimal NixOS-WSL bootstrap image with only corporate CA trust
+- `workwsl` is the terminal-first NixOS-WSL host, tracked in [WORKWSL_PLAN.md](./WORKWSL_PLAN.md)
 
 ## Layout
 

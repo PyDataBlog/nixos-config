@@ -88,6 +88,9 @@ The repo is now split enough to support WSL cleanly:
 - [nixosModules/desktop-services.nix](./nixosModules/desktop-services.nix) and [nixosModules/desktop-packages.nix](./nixosModules/desktop-packages.nix) isolate desktop-only behavior
 - [features/nixos/wsl.nix](./features/nixos/wsl.nix) owns the common WSL system feature
 - [nixosModules/corporate-ca.nix](./nixosModules/corporate-ca.nix) owns CA trust wiring
+- `workwsl` now reuses the desktop SOPS password hash and expects the personal age key at `~/.config/sops/age/keys.txt`
+- `wslbootstrap` keeps passwordless sudo for first-boot convenience; `workwsl` does not
+- [flake/checks.nix](./flake/checks.nix) now includes explicit `workwsl`, `wslbootstrap`, and `wslbootstrap` tarball-builder checks
 
 The remaining work is operational, not structural.
 
@@ -504,7 +507,9 @@ wsl -d workwsl
 These are the recommended initial defaults for `workwsl`.
 
 - `repo.obsidian.enable = false`
-- `repo.secrets.sopsFile = null`
+- `repo.secrets.sopsFile = ../../secrets/desktop.yaml`
+- `repo.secrets.userPasswordHashKey = "user-password-hash"`
+- `sops.age.keyFile = "/home/bebr/.config/sops/age/keys.txt"`
 - terminal-first packages and workflows only
 - no desktop features
 - no Wayland features
@@ -518,6 +523,7 @@ Reason:
 
 - the first successful WSL host should optimize for trust, shell, tmux, Neovim, CLI tooling, and rebuildability
 - GUI and desktop extras should be justified separately instead of arriving by inheritance from `desktop`
+- reusing the existing hashed password avoids a separate password bootstrap path once the personal age key is restored
 
 ## Secrets Strategy for WSL
 

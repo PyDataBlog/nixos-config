@@ -5,6 +5,16 @@
     let
       primaryUsername = self.nixosConfigurations.desktop.config.repo.user.username;
       hmUser = self.nixosConfigurations.desktop.config.home-manager.users.${primaryUsername};
+      corporateCaForChecks = pkgs.runCommandLocal "corporate-ca-check.pem" { } ''
+        cp ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt "$out"
+      '';
+      wslbootstrapCheck = self.nixosConfigurations.wslbootstrap.extendModules {
+        modules = [
+          {
+            repo.workNetwork.certificateFile = corporateCaForChecks;
+          }
+        ];
+      };
       overrideDesktop = self.nixosConfigurations.desktop.extendModules {
         modules = [
           {
@@ -52,6 +62,9 @@
         cliFull = cliFullPkg;
         emacs = self'.packages.emacs;
         tmux = self'.packages.tmux;
+        workwsl-system = self.nixosConfigurations.workwsl.config.system.build.toplevel;
+        wslbootstrap-system = wslbootstrapCheck.config.system.build.toplevel;
+        wslbootstrap-tarball = wslbootstrapCheck.config.system.build.tarballBuilder;
         emacs-smoke = pkgs.runCommandLocal "emacs-smoke" { } ''
           export HOME="$TMPDIR/home"
           mkdir -p "$HOME"

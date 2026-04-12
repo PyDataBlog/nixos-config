@@ -1,15 +1,22 @@
-{ pkgs, ... }:
+{
+  lib,
+  pkgs,
+  repoLib,
+  ...
+}:
 {
   imports = [ ../../features/nixos/wsl.nix ];
 
   networking.hostName = "wslbootstrap";
 
-  wsl.defaultUser = "bebr";
+  wsl.defaultUser = repoLib.primaryUser.username;
 
-  users.users.bebr = {
+  security.sudo.wheelNeedsPassword = lib.mkForce false;
+
+  users.users.${repoLib.primaryUser.username} = {
     isNormalUser = true;
     extraGroups = [ "wheel" ];
-    home = "/home/bebr";
+    home = repoLib.primaryUser.homeDirectory;
     shell = pkgs.bashInteractive;
   };
 
