@@ -1,5 +1,14 @@
 # Desktop Disaster Recovery
 
+<!--toc:start-->
+
+- [Desktop Disaster Recovery](#desktop-disaster-recovery)
+  - [Required Inputs](#required-inputs)
+  - [Same Desktop Recovery](#same-desktop-recovery)
+  - [Host Key Changed After Reinstall](#host-key-changed-after-reinstall)
+  - [If `keys.txt` Is Lost](#if-keystxt-is-lost)
+  <!--toc:end-->
+
 Scope:
 
 - `desktop` only

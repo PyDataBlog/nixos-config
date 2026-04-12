@@ -1,5 +1,20 @@
 # nixos-config
 
+<!--toc:start-->
+
+- [nixos-config](#nixos-config)
+  - [Layout](#layout)
+  - [Rebuild](#rebuild)
+  - [Host Data](#host-data)
+  - [Secrets](#secrets)
+  - [Fresh Install Bootstrap](#fresh-install-bootstrap)
+  - [Disaster Recovery](#disaster-recovery)
+  - [Validation](#validation)
+  - [Local formatting and hooks](#local-formatting-and-hooks)
+  - [Standalone Wrappers](#standalone-wrappers)
+  - [Package Placement](#package-placement)
+  <!--toc:end-->
+
 Desktop-first NixOS flake with multiple host targets and a host-selected primary user declared in NixOS.
 
 Current scope:

@@ -1,3 +1,8 @@
+<!--toc:start-->
+
+- [Secrets](#secrets)
+<!--toc:end-->
+
 ## Secrets
 
 This repo uses `sops-nix` for host secrets.

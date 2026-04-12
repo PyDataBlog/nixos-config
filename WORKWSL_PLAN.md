@@ -1,5 +1,53 @@
 # workwsl plan
 
+<!--toc:start-->
+
+- [workwsl plan](#workwsl-plan)
+  - [Goal](#goal)
+  - [Constraint](#constraint)
+  - [Recommended Bootstrap Model](#recommended-bootstrap-model)
+  - [Terminal-First Principles](#terminal-first-principles)
+  - [Certificate Policy](#certificate-policy)
+  - [Current Repo Shape](#current-repo-shape)
+  - [File-by-File Refactor Plan](#file-by-file-refactor-plan)
+    - [1. [flake.nix](./flake.nix)](#1-flakenixflakenix)
+    - [2. [flake/hosts.nix](./flake/hosts.nix)](#2-flakehostsnixflakehostsnix)
+    - [3. [nixosModules/base.nix](./nixosModules/base.nix)](#3-nixosmodulesbasenixnixosmodulesbasenix)
+    - [4. [features/nixos/base.nix](./features/nixos/base.nix)](#4-featuresnixosbasenixfeaturesnixosbasenix)
+    - [5. [nixosModules/packages.nix](./nixosModules/packages.nix)](#5-nixosmodulespackagesnixnixosmodulespackagesnix)
+    - [6. [users/home.nix](./users/home.nix)](#6-usershomenixusershomenix)
+    - [7. [users/common.nix](./users/common.nix)](#7-userscommonnixuserscommonnix)
+    - [8. [users/workwsl.nix](./users/workwsl.nix)](#8-usersworkwslnixusersworkwslnix)
+    - [9. `users/wslbootstrap.nix`](#9-userswslbootstrapnix)
+    - [10. [features/nixos/wsl.nix](./features/nixos/wsl.nix)](#10-featuresnixoswslnixfeaturesnixoswslnix)
+    - [11. [hosts/wslbootstrap/default.nix](./hosts/wslbootstrap/default.nix)](#11-hostswslbootstrapdefaultnixhostswslbootstrapdefaultnix)
+    - [12. [hosts/workwsl/default.nix](./hosts/workwsl/default.nix)](#12-hostsworkwsldefaultnixhostsworkwsldefaultnix)
+    - [13. Local `zscaler.pem` plus GitHub secret `ZSCALER_PEM`](#13-local-zscalerpem-plus-github-secret-zscalerpem)
+    - [14. [.github/workflows/release-wsl-bootstrap.yml](./.github/workflows/release-wsl-bootstrap.yml)](#14-githubworkflowsrelease-wsl-bootstrapymlgithubworkflowsrelease-wsl-bootstrapyml)
+    - [15. [README.md](./README.md)](#15-readmemdreadmemd)
+  - [Bootstrap Sequence](#bootstrap-sequence)
+    - [Phase A: Desktop-side refactor](#phase-a-desktop-side-refactor)
+    - [Phase B: Publish the bootstrap image](#phase-b-publish-the-bootstrap-image)
+    - [Phase C: Install the bootstrap image on the work laptop](#phase-c-install-the-bootstrap-image-on-the-work-laptop)
+    - [Phase D: Validate trust before cloning](#phase-d-validate-trust-before-cloning)
+    - [Phase E: Clone the repo inside WSL](#phase-e-clone-the-repo-inside-wsl)
+    - [Phase F: First on-device rebuild to the real host](#phase-f-first-on-device-rebuild-to-the-real-host)
+  - [Work PC Checklist](#work-pc-checklist)
+    - [1. Download and install the bootstrap image](#1-download-and-install-the-bootstrap-image)
+    - [2. Boot into the bootstrap distro](#2-boot-into-the-bootstrap-distro)
+    - [3. Verify TLS trust before cloning anything](#3-verify-tls-trust-before-cloning-anything)
+    - [4. Restore the personal age key](#4-restore-the-personal-age-key)
+    - [5. Clone the repo into the Linux filesystem](#5-clone-the-repo-into-the-linux-filesystem)
+    - [6. Switch to the real `workwsl` host](#6-switch-to-the-real-workwsl-host)
+    - [7. Restart the distro once](#7-restart-the-distro-once)
+    - [8. Verify the final state](#8-verify-the-final-state)
+    - [9. Optional full validation pass](#9-optional-full-validation-pass)
+  - [First-Pass Host Defaults](#first-pass-host-defaults)
+  - [Secrets Strategy for WSL](#secrets-strategy-for-wsl)
+  - [Suggested Implementation Order](#suggested-implementation-order)
+  - [Completion Criteria](#completion-criteria)
+  <!--toc:end-->
+
 Status: phases 1 to 4 are implemented in the repo. This file is the continuation point for publishing `wslbootstrap`, installing it on the work laptop, and converging onto `workwsl`.
 
 ## Goal
@@ -501,6 +549,116 @@ Then restart the distro if required:
 wsl -t workwsl
 wsl -d workwsl
 ```
+
+## Work PC Checklist
+
+This is the practical install-to-convergence sequence for the work laptop after the bootstrap image has been published.
+
+### 1. Download and install the bootstrap image
+
+In Windows PowerShell:
+
+```powershell
+wsl --install --from-file .\nixos-wsl-bootstrap-x86_64-linux.wsl --name workwsl
+```
+
+If WSL is already installed and the command fails, update or enable WSL first and rerun the same install command.
+
+### 2. Boot into the bootstrap distro
+
+In Windows PowerShell:
+
+```powershell
+wsl -d workwsl
+```
+
+### 3. Verify TLS trust before cloning anything
+
+Run these inside WSL:
+
+```bash
+whoami
+curl -I https://cache.nixos.org
+git ls-remote https://github.com/PyDataBlog/nixos-config.git
+```
+
+Expected result:
+
+- the user is `bebr`
+- both network commands succeed without certificate errors
+
+If any TLS error appears here, stop and fix trust before cloning the repo.
+
+### 4. Restore the personal age key
+
+`workwsl` reuses the desktop password hash from `secrets/desktop.yaml`, so the personal age key must exist before switching to the real host.
+
+Run inside WSL:
+
+```bash
+mkdir -p ~/.config/sops/age
+cp /path/to/backup/keys.txt ~/.config/sops/age/keys.txt
+chmod 600 ~/.config/sops/age/keys.txt
+```
+
+### 5. Clone the repo into the Linux filesystem
+
+Do not use `/mnt/c/...`.
+
+```bash
+cd ~
+git clone https://github.com/PyDataBlog/nixos-config.git
+cd nixos-config
+```
+
+### 6. Switch to the real `workwsl` host
+
+Run inside the repo:
+
+```bash
+sudo nixos-rebuild switch --flake .#workwsl --accept-flake-config
+```
+
+Behavior note:
+
+- `wslbootstrap` has passwordless sudo
+- `workwsl` requires the normal password again
+
+### 7. Restart the distro once
+
+In Windows PowerShell:
+
+```powershell
+wsl -t workwsl
+wsl -d workwsl
+```
+
+### 8. Verify the final state
+
+Run inside WSL:
+
+```bash
+whoami
+echo $SHELL
+tmux -V
+nvim --version | head
+sudo -v
+```
+
+Expected result:
+
+- the shell stack is present
+- `sudo -v` prompts for the normal password instead of behaving like bootstrap mode
+
+### 9. Optional full validation pass
+
+Run inside the repo:
+
+```bash
+nix flake check --accept-flake-config --impure
+```
+
+If this fails after the host switch succeeds, the remaining issue is repo-level rather than bootstrap-level.
 
 ## First-Pass Host Defaults
 

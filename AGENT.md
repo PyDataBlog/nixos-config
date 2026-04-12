@@ -1,12 +1,15 @@
 # AGENT.md
 
-This repo is a desktop-first NixOS flake for one machine and one user.
+This repo is a desktop-first NixOS flake with multiple host targets and a host-selected primary user.
 Treat it as an explicit, portable, git-tracked configuration, not a place for clever abstractions.
 
 ## Scope
 
-- One host only: `desktop`
-- One user only: `bebr`
+- Hosts:
+  - `desktop`
+  - `wslbootstrap`
+  - `workwsl`
+- One primary user chosen per host
 - Main package set: `nixos-unstable`
 - Secondary package set: `nixos-25.11` as `pkgsStable`
 - Flakes and `flake-parts` are required
@@ -22,6 +25,11 @@ Treat it as an explicit, portable, git-tracked configuration, not a place for cl
 - `wrappers/` contains runnable/exportable artifacts
 - `packages/` is for custom packaged things, not normal installs
 - `flake/` wires outputs
+
+Neovim is split intentionally:
+
+- `homeManagerModules/nixvim/` owns plugin/runtime/package composition
+- `wrappers/neovim/` owns the Lua config tree and runtime files
 
 ## Wrapper Rule
 
@@ -39,11 +47,14 @@ Treat everything in `wrappers/` as a standalone shared artifact by default.
 - Features compose; modules implement
 - No extra host/profile/common abstractions unless there is a real second consumer
 - No import-tree auto-discovery magic
-- Home Manager integration stays in `nixosModules/base.nix`
+- Home Manager integration stays in `nixosModules/core.nix`
+- Shared system behavior lives in `nixosModules/core.nix`
+- Desktop-only services live in `nixosModules/desktop-services.nix`
+- Desktop-only system packages live in `nixosModules/desktop-packages.nix`
+- Shared system packages live in `nixosModules/packages.nix`
 - NVIDIA config stays in `nixosModules/desktop.nix`
-- Machine-wide packages go in `nixosModules/packages.nix`
 - User packages go in `homeManagerModules/packages.nix`
-- Nixvim lives in `homeManagerModules/nixvim/`
+- Shared WSL behavior lives in `features/nixos/wsl.nix`
 - Wrappers do not replace Home Manager
 
 ## User Preferences
@@ -56,6 +67,7 @@ Treat everything in `wrappers/` as a standalone shared artifact by default.
 - Default editor: `nvim`
 - User likes cached binaries and expects `--accept-flake-config` on flake commands when useful
 - User is comfortable with bleeding-edge NixOS and NVIDIA
+- `workwsl` is terminal-first; do not treat it as a reduced Linux desktop
 
 ## Current Desktop Stack
 
@@ -72,7 +84,8 @@ Treat everything in `wrappers/` as a standalone shared artifact by default.
 The repo now also exposes a portable CLI environment as `.#cli`.
 
 - It should stay runnable on external `x86_64-linux` Nix machines without this host config
-- It should carry Nushell, tmux, prompt, aliases, and wrapped `nvim` behavior with it
+- `.#cli` is the lean shell environment and uses lightweight `pkgs.neovim`
+- `.#cli-full` is the full workbench and carries the wrapped `.#nixvim`
 - Do not pull desktop-only baggage like CUDA/NVIDIA tools into `.#cli` unless explicitly needed
 - Reuse Home Manager shell config as the source of truth instead of duplicating shell config text in the wrapper
 
@@ -108,12 +121,13 @@ Preserve the direction:
   - `/tmp/MiniMax/configs/nvim-0.13/plugin/10_options.lua`
   - `/tmp/MiniMax/configs/nvim-0.13/plugin/20_keymaps.lua`
   - `/tmp/MiniMax/configs/nvim-0.13/plugin/30_mini.lua`
-- prefer Nixvim modules first
-- use raw Lua only where needed
+- keep Nix responsible for plugin/runtime/tool composition
+- keep editor behavior in the Lua tree under `wrappers/neovim/`
+- prefer plain Lua entrypoints over large `extraConfigLuaPost` strings
 - keep nightly Neovim scoped to the Nixvim layer, not global `pkgs.neovim`
 - if behavior differs from MiniMax, assume MiniMax's default is preferred unless the repo already made an explicit local choice
 - `.#nixvim` should follow the general wrapper rule above
-- keep Home Manager and wrapper Neovim on one shared module source of truth
+- keep Home Manager and wrapper Neovim on one shared source of truth through `homeManagerModules/nixvim/config-tree.nix`
 
 ## Package Placement
 
@@ -141,6 +155,35 @@ nix shell nixpkgs#niri --command sh -lc 'niri validate -c /nix/store/...-niri-co
 ```
 
 Do not rely only on evaluation when touching runtime-sensitive desktop config.
+
+## Documentation Sync Rule
+
+`AGENT.md` is internal repo policy, but it still needs to match the actual tree.
+
+When changing any of these, update the matching docs in the same commit:
+
+- host topology or host purpose:
+  - `AGENT.md`
+  - `README.md`
+  - `WORKWSL_PLAN.md` when WSL is involved
+- file ownership or architecture boundaries:
+  - `AGENT.md`
+  - `README.md` if user-facing behavior changed
+- bootstrap, recovery, or secret handling:
+  - `README.md`
+  - `DISASTER_RECOVERY.md`
+  - `WORKWSL_PLAN.md` for WSL bootstrap/install flow
+- wrapper behavior or exposed standalone artifacts:
+  - `AGENT.md`
+  - `README.md`
+
+Practical rule:
+
+- if a change makes an `AGENT.md` statement false, update `AGENT.md` in the same commit
+- if a change makes a README command or workflow description false, update `README.md` in the same commit
+- if a change alters the WSL install or convergence path, update `WORKWSL_PLAN.md` in the same commit
+
+Use `rg` before final review to catch stale references after refactors.
 
 ## Collaboration Notes
 
