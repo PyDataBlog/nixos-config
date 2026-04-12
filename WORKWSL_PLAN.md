@@ -1,0 +1,568 @@
+# workwsl plan
+
+Status: phases 1 to 4 are implemented in the repo. This file is the continuation point for publishing `wslbootstrap`, installing it on the work laptop, and converging onto `workwsl`.
+
+## Goal
+
+Add a new `workwsl` host that:
+
+- runs under NixOS-WSL on the work laptop
+- is terminal-first by default
+- trusts the corporate `zscaler.pem` CA before the first useful network fetch
+- reuses the repo's common shell/editor/developer setup
+- does not inherit desktop-only services like Niri, Noctalia, printing, audio, or NVIDIA
+- does not assume Linux GUI applications are part of the first bootstrap
+
+## Constraint
+
+The work network requires `zscaler.pem` before:
+
+- `git clone`
+- `nix flake metadata`
+- `nixos-rebuild`
+- substituter access such as `https://cache.nixos.org`
+
+That makes the bootstrap order important. A stock NixOS-WSL install first and repo integration second is the wrong order.
+
+## Recommended Bootstrap Model
+
+Use two WSL targets, not one:
+
+- `wslbootstrap`: minimal published image with only NixOS-WSL plus the corporate CA
+- `workwsl`: the real terminal-first host inside this repo
+
+Build and publish `wslbootstrap` first, then use it to get a working base WSL install on the laptop. After that, clone the repo and switch to `workwsl`.
+
+That keeps the certificate problem out of the critical path:
+
+1. add a minimal `wslbootstrap` host with only certificate trust
+2. publish its tarball from GitHub Actions as a release artifact
+3. install that image on the work laptop
+4. validate that TLS trust works
+5. clone the repo inside WSL
+6. build and switch to the real `workwsl` host later
+
+## Terminal-First Principles
+
+`workwsl` should be treated as a terminal workstation, not a reduced desktop host.
+
+That means:
+
+- prioritize `nu`, `tmux`, `nvim`, CLI wrappers, and developer tooling
+- prefer Windows-hosted GUI tools when a GUI is needed
+- do not add Linux desktop services by default
+- do not add Linux GUI applications by default just because they exist on `desktop`
+- only add WSL-specific integration when it improves terminal workflows directly
+
+`wslbootstrap` is even narrower than that:
+
+- no repo tooling
+- no developer stack
+- no Home Manager feature layering beyond what is absolutely required
+- just enough system state to boot, trust the corporate CA, and reach the network successfully
+
+## Certificate Policy
+
+`zscaler.pem` is a trust anchor, not a secret. It should not go through SOPS.
+
+Chosen path:
+
+- GitHub Actions secret: `ZSCALER_PEM`
+- local validation input: `ZSCALER_PEM_FILE=/path/to/zscaler.pem`
+
+Current implementation:
+
+- the repo does not track the PEM
+- [nixosModules/corporate-ca.nix](./nixosModules/corporate-ca.nix) reads `ZSCALER_PEM_FILE` during impure evaluation and turns it into a real store path
+- the release workflow materializes `ZSCALER_PEM` into a temporary file and exports `ZSCALER_PEM_FILE`
+
+## Current Repo Shape
+
+The repo is now split enough to support WSL cleanly:
+
+- [flake/hosts.nix](./flake/hosts.nix) now defines `desktop`, `wslbootstrap`, and `workwsl`
+- [users/common.nix](./users/common.nix) holds the shared Home Manager user entrypoint
+- [users/home.nix](./users/home.nix) is now the desktop user entrypoint
+- [users/workwsl.nix](./users/workwsl.nix) is now the terminal-first WSL user entrypoint
+- [nixosModules/core.nix](./nixosModules/core.nix) holds shared system state
+- [nixosModules/desktop-services.nix](./nixosModules/desktop-services.nix) and [nixosModules/desktop-packages.nix](./nixosModules/desktop-packages.nix) isolate desktop-only behavior
+- [features/nixos/wsl.nix](./features/nixos/wsl.nix) owns the common WSL system feature
+- [nixosModules/corporate-ca.nix](./nixosModules/corporate-ca.nix) owns CA trust wiring
+
+The remaining work is operational, not structural.
+
+## File-by-File Refactor Plan
+
+### 1. [flake.nix](./flake.nix)
+
+Add the `nixos-wsl` input.
+
+Planned change:
+
+- add `nixos-wsl.url = "github:nix-community/NixOS-WSL";`
+- set `inputs.nixpkgs.follows = "nixpkgs"` for that input
+
+Reason:
+
+- the host should import `inputs.nixos-wsl.nixosModules.default`
+
+### 2. [flake/hosts.nix](./flake/hosts.nix)
+
+Add two more host entries: `wslbootstrap` and `workwsl`.
+
+Planned change:
+
+- keep `desktop` as-is
+- add `flake.nixosConfigurations.wslbootstrap = inputs.nixpkgs.lib.nixosSystem { ... }`
+- add `flake.nixosConfigurations.workwsl = inputs.nixpkgs.lib.nixosSystem { ... }`
+- import `../hosts/wslbootstrap`
+- import `../hosts/workwsl`
+
+Reason:
+
+- the minimal published image and the real WSL host should be separate artifacts
+
+### 3. [nixosModules/base.nix](./nixosModules/base.nix)
+
+This split is implemented.
+
+Result:
+
+- new `nixosModules/core.nix` replacement for shared host logic
+- new `nixosModules/desktop-services.nix` for desktop-only services
+
+Move into `core.nix`:
+
+- `repo.*` option definitions
+- assertions
+- `nix.settings.experimental-features`
+- `nixpkgs.config.allowUnfree`
+- `nixpkgs.config.permittedInsecurePackages`
+- `programs.nh`
+- `services.openssh`
+- timezone and locale
+- shell defaults
+- SOPS wiring
+- primary user creation
+- Home Manager integration
+- `home-manager.backupFileExtension`
+
+Move out of core into `desktop-services.nix`:
+
+- `networking.networkmanager.enable`
+- `services.avahi`
+- `services.printing`
+- `programs.system-config-printer`
+- `services.pipewire`
+- `security.rtkit`
+- `services.xserver.xkb`
+- `programs.firefox.enable`
+
+Reason:
+
+- `workwsl` needs the common user/Home Manager/SOPS/Nix behavior
+- `workwsl` must not inherit desktop networking, audio, mDNS, printing, or browser policy from core
+
+### 4. [features/nixos/base.nix](./features/nixos/base.nix)
+
+This feature now points at shared system composition only.
+
+Planned change:
+
+- import the new `../../nixosModules/core.nix`
+- keep shared system package wiring only if it is actually host-neutral
+
+Reason:
+
+- `features/nixos/base.nix` should become safe for both `desktop` and `workwsl`
+
+### 5. [nixosModules/packages.nix](./nixosModules/packages.nix)
+
+This split is implemented.
+
+Current problem:
+
+- it still installs `xwayland-satellite` and `repoPackages.desktop`
+- `repoPackages.desktop` includes `ventoy-full-gtk`, CUDA, NVIDIA tooling, and `vscode`
+
+Planned result:
+
+- keep only minimal system-wide packages here, or rename it to `core-packages.nix`
+- add a new `nixosModules/desktop-packages.nix` for:
+  - `xwayland-satellite`
+  - `repoPackages.desktop`
+  - any other display-machine-only packages
+
+Reason:
+
+- `workwsl` should not inherit Linux desktop packages at the system layer
+
+### 6. [users/home.nix](./users/home.nix)
+
+This is now the desktop user entrypoint instead of the only user entrypoint.
+
+Planned change:
+
+- keep desktop-specific imports here:
+  - `inputs.noctalia.homeModules.default`
+  - `../features/home-manager/desktop-wayland.nix`
+  - `../features/home-manager/terminal-ghostty.nix`
+- move the shared imports into a new common file
+
+Reason:
+
+- WSL should not inherit Wayland, Noctalia, or Ghostty assumptions
+
+### 7. [users/common.nix](./users/common.nix)
+
+Create a shared Home Manager user entrypoint.
+
+Planned imports:
+
+- `inputs.nix-index-database.homeModules.default`
+- `inputs.nixvim.homeModules.nixvim`
+- `../features/home-manager/base.nix`
+- `../features/home-manager/shell.nix`
+- `../features/home-manager/developer.nix`
+
+Reason:
+
+- both `desktop` and `workwsl` should share the common shell, editor, packages, and developer setup
+
+### 8. [users/workwsl.nix](./users/workwsl.nix)
+
+Create the WSL-specific Home Manager entrypoint.
+
+Planned imports:
+
+- `./common.nix`
+
+Optional later additions:
+
+- a WSL-specific terminal module if Windows Terminal or another terminal needs host-specific behavior
+- remote-editor support only if there is a concrete workflow need
+
+Do not import:
+
+- `desktop-wayland.nix`
+- `terminal-ghostty.nix`
+- `inputs.noctalia.homeModules.default`
+
+Reason:
+
+- WSL is not a Wayland desktop session
+
+### 9. `users/wslbootstrap.nix`
+
+Create a minimal bootstrap user entrypoint only if Home Manager is actually needed for the bootstrap image.
+
+Preferred path:
+
+- avoid a Home Manager user module entirely for `wslbootstrap`
+
+Fallback path if a user-level shell baseline is required:
+
+- keep it minimal and terminal-only
+- no editor setup
+- no developer tooling
+- no desktop integrations
+
+Reason:
+
+- the published bootstrap image should stay as small and neutral as possible
+
+### 10. [features/nixos/wsl.nix](./features/nixos/wsl.nix)
+
+Create a dedicated WSL system feature.
+
+Planned contents:
+
+- import `inputs.nixos-wsl.nixosModules.default`
+- `wsl.enable = true`
+- `wsl.interop.includePath = false`
+- `wsl.startMenuLaunchers = false`
+- `security.sudo.wheelNeedsPassword = false`
+
+Reason:
+
+- WSL-specific behavior should live in a dedicated feature bundle, not in the host file directly
+
+### 11. [hosts/wslbootstrap/default.nix](./hosts/wslbootstrap/default.nix)
+
+Create a minimal WSL bootstrap host for release publishing.
+
+Planned shape:
+
+- import:
+  - `../../features/nixos/wsl.nix`
+- set:
+  - `networking.hostName = "wslbootstrap"`
+  - `wsl.defaultUser = "bebr"`
+  - `system.stateVersion = "<chosen version>"`
+- include only certificate trust and whatever user/default shell state is required for first login
+- use `repo.workNetwork.certificateFile` via [nixosModules/corporate-ca.nix](./nixosModules/corporate-ca.nix)
+
+Do not add:
+
+- repo CLI package bundles
+- Home Manager desktop features
+- `nixvim`
+- `tmux`
+- Kubernetes, cloud, media, or language tool bundles
+
+Reason:
+
+- this image exists only to get a working trusted WSL base onto the laptop
+
+### 12. [hosts/workwsl/default.nix](./hosts/workwsl/default.nix)
+
+Create the new host entrypoint.
+
+Planned shape:
+
+- do not import `hardware-configuration.nix`
+- import:
+  - `../../features/nixos/base.nix`
+  - `../../features/nixos/wsl.nix`
+- set:
+  - `networking.hostName = "workwsl"`
+  - `wsl.defaultUser = "bebr"`
+  - `repo.user.homeModule = ../../users/workwsl.nix`
+  - `programs.nix-ld.enable = true`
+  - `repo.obsidian.enable = false`
+  - `repo.secrets.sopsFile = null`
+- `system.stateVersion = "<chosen version>"`
+
+Reason:
+
+- `workwsl` is the right place to declare terminal-first host defaults
+
+### 13. Local `zscaler.pem` plus GitHub secret `ZSCALER_PEM`
+
+Provide the corporate CA in two places:
+
+- local desktop file for validation:
+  - exported as `ZSCALER_PEM_FILE=/path/to/zscaler.pem`
+- GitHub repository secret:
+  - `ZSCALER_PEM`
+
+Reason:
+
+- this must work before the first useful network fetch
+- this is trust material, not a password or API secret
+
+### 14. [.github/workflows/release-wsl-bootstrap.yml](./.github/workflows/release-wsl-bootstrap.yml)
+
+Create a release workflow that publishes the minimal `wslbootstrap` image.
+
+Workflow design:
+
+- trigger on:
+  - `workflow_dispatch`
+  - optionally tags like `wslbootstrap-*`
+- build target:
+  - `.#nixosConfigurations.wslbootstrap.config.system.build.tarballBuilder`
+- run the produced builder to emit `nixos.wsl`
+- upload the `.wsl` file as a release asset
+
+Important scope limit:
+
+- this workflow should publish only the minimal bootstrap image
+- it should not include repo tooling, terminal tooling, or the real `workwsl` host payload
+
+Naming suggestion:
+
+- release title: `wslbootstrap`
+- asset name: `nixos-wsl-bootstrap-x86_64-linux.wsl`
+
+Important prerequisite:
+
+- this only works if `ZSCALER_PEM` is present as a GitHub secret
+
+Reason:
+
+- the work laptop then has a stable, downloadable, trust-ready base image before the full host exists locally
+
+### 15. [README.md](./README.md)
+
+Update the repo README after implementation.
+
+Planned additions:
+
+- change current scope from one host to two hosts
+- document `workwsl` as a planned or supported host
+- add the WSL bootstrap commands
+- link this plan file until the implementation is complete
+
+## Bootstrap Sequence
+
+This is the recommended end-to-end flow from the current repo state.
+
+### Phase A: Desktop-side refactor
+
+1. Keep the existing `nixos-wsl` input locked.
+2. Keep the existing core versus desktop split.
+3. Keep `wslbootstrap` and `workwsl` as separate hosts.
+4. Set `ZSCALER_PEM` in GitHub.
+5. Keep a local `zscaler.pem` for desktop-side validation when needed.
+
+Validation after this phase:
+
+```bash
+nix build --no-link .#nixosConfigurations.desktop.config.system.build.toplevel --accept-flake-config --impure
+ZSCALER_PEM_FILE=/path/to/zscaler.pem nix build --no-link .#nixosConfigurations.wslbootstrap.config.system.build.toplevel --accept-flake-config --impure
+ZSCALER_PEM_FILE=/path/to/zscaler.pem nix build --no-link .#nixosConfigurations.workwsl.config.system.build.toplevel --accept-flake-config --impure
+```
+
+### Phase B: Publish the bootstrap image
+
+Use the minimal `wslbootstrap` host for publishing.
+
+Planned flow:
+
+```bash
+ZSCALER_PEM_FILE=/path/to/zscaler.pem sudo nix run .#nixosConfigurations.wslbootstrap.config.system.build.tarballBuilder --accept-flake-config --impure
+```
+
+Expected result:
+
+- a `nixos.wsl` image file in the working directory
+- later, the same output can be produced in GitHub Actions and attached to a release
+
+Keep a local copy of:
+
+- the built `nixos.wsl`
+- this repo checkout
+
+### Phase C: Install the bootstrap image on the work laptop
+
+From an elevated PowerShell or Windows Terminal session:
+
+```powershell
+wsl --install --from-file .\nixos.wsl --name workwsl
+```
+
+If a custom installation directory is needed:
+
+```powershell
+wsl --install --from-file .\nixos.wsl --name workwsl --location D:\WSL\workwsl
+```
+
+Then start it:
+
+```powershell
+wsl -d workwsl
+```
+
+### Phase D: Validate trust before cloning
+
+Run these inside the newly installed WSL instance:
+
+```bash
+curl -I https://cache.nixos.org
+git ls-remote https://github.com/PyDataBlog/nixos-config.git
+nix flake metadata github:nix-community/NixOS-WSL
+```
+
+If these fail with certificate errors, stop and fix trust before trying to clone anything else.
+
+### Phase E: Clone the repo inside WSL
+
+Clone into the Linux filesystem, not under `/mnt/c`.
+
+Example:
+
+```bash
+cd ~
+git clone https://github.com/PyDataBlog/nixos-config.git
+cd nixos-config
+```
+
+If SSH is preferred and the work environment allows it:
+
+```bash
+git clone git@github.com:PyDataBlog/nixos-config.git
+```
+
+### Phase F: First on-device rebuild to the real host
+
+From the repo root inside WSL:
+
+```bash
+sudo nixos-rebuild switch --flake .#workwsl --accept-flake-config
+```
+
+Then restart the distro if required:
+
+```powershell
+wsl -t workwsl
+wsl -d workwsl
+```
+
+## First-Pass Host Defaults
+
+These are the recommended initial defaults for `workwsl`.
+
+- `repo.obsidian.enable = false`
+- `repo.secrets.sopsFile = null`
+- terminal-first packages and workflows only
+- no desktop features
+- no Wayland features
+- no Noctalia
+- no Ghostty-specific Home Manager module
+- no Linux GUI apps by default
+- no clipboard-manager or desktop MIME integration by default
+- Docker integration only if work actually requires it
+
+Reason:
+
+- the first successful WSL host should optimize for trust, shell, tmux, Neovim, CLI tooling, and rebuildability
+- GUI and desktop extras should be justified separately instead of arriving by inheritance from `desktop`
+
+## Secrets Strategy for WSL
+
+Do not make host secrets part of the first `workwsl` bootstrap unless they are actually needed.
+
+Recommended initial state:
+
+- no WSL host secret file
+- no host SSH key based SOPS identity
+- no dependency on the work laptop for secret decryption during first boot
+
+If secrets are needed later:
+
+- prefer personal age identity based access over host SSH key coupling
+- add a separate `secrets/workwsl.yaml` only when there is a concrete need
+
+## Suggested Implementation Order
+
+This order keeps the risk low.
+
+1. split `users/home.nix` into `users/common.nix` plus desktop-only `users/home.nix`
+2. split `nixosModules/base.nix` into core and desktop services
+3. split `nixosModules/packages.nix` into core and desktop package layers
+4. add `features/nixos/wsl.nix`
+5. add `hosts/wslbootstrap/default.nix`
+6. add the certificate file and trust wiring
+7. build and test `.#nixosConfigurations.wslbootstrap.config.system.build.toplevel`
+8. add the release workflow for the bootstrap image
+9. add `users/workwsl.nix` and `hosts/workwsl/default.nix`
+10. build and test `.#nixosConfigurations.workwsl.config.system.build.toplevel`
+11. publish or copy the bootstrap `nixos.wsl`
+12. install on the work laptop
+
+## Completion Criteria
+
+The `workwsl` work is done when all of these are true:
+
+- `nix build --no-link .#nixosConfigurations.wslbootstrap.config.system.build.toplevel` succeeds on the desktop
+- `nix build --no-link .#nixosConfigurations.workwsl.config.system.build.toplevel` succeeds on the desktop
+- the published or locally built bootstrap WSL image installs successfully
+- the new WSL instance can reach GitHub and `cache.nixos.org` without TLS errors
+- the repo can be cloned inside WSL without temporary certificate hacks
+- `sudo nixos-rebuild switch --flake .#workwsl --accept-flake-config` succeeds on the work laptop
+- the first interactive shell has the expected terminal-first environment:
+  - `nu`
+  - `tmux`
+  - `nvim`
+  - the portable CLI tooling needed for daily work

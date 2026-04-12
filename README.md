@@ -15,6 +15,10 @@ Current scope:
 - Ghostty + Nushell + Starship
 - Nixvim with a MiniMax-inspired baseline
 
+Planned next host:
+
+- `workwsl` via NixOS-WSL as a terminal-first host, tracked in [WORKWSL_PLAN.md](./WORKWSL_PLAN.md)
+
 ## Layout
 
 The repo is intentionally split by responsibility:

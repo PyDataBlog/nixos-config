@@ -42,6 +42,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    nixos-wsl = {
+      url = "github:nix-community/NixOS-WSL";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     kubectl-nvim = {
       url = "github:Ramilito/kubectl.nvim/v2.41.4";
       inputs.nixpkgs.follows = "nixpkgs";

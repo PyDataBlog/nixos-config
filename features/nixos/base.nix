@@ -1,7 +1,7 @@
 { ... }:
 {
   imports = [
-    ../../nixosModules/base.nix
+    ../../nixosModules/core.nix
     ../../nixosModules/packages.nix
   ];
 }
