@@ -153,6 +153,84 @@ in
       };
     };
 
+    obsidian = {
+      enable = lib.mkEnableOption "Obsidian desktop and Neovim integration";
+
+      vaults = lib.mkOption {
+        type = lib.types.listOf (
+          lib.types.submodule {
+            options = {
+              name = lib.mkOption {
+                type = lib.types.str;
+                description = "Workspace name shown inside obsidian.nvim.";
+              };
+
+              path = lib.mkOption {
+                type = lib.types.str;
+                description = "Vault path. Relative paths are resolved against the user's home directory.";
+              };
+
+              strict = lib.mkOption {
+                type = lib.types.bool;
+                default = false;
+                description = "Treat the workspace path itself as the vault root instead of searching parent directories.";
+              };
+            };
+          }
+        );
+        default = [ ];
+        description = "Configured Obsidian workspaces for the primary user.";
+      };
+
+      dailyNotes = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = "Enable daily-note support in obsidian.nvim.";
+        };
+
+        folder = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = "daily";
+          description = "Folder for daily notes, relative to each vault root.";
+        };
+
+        workdaysOnly = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = "Use workday-aware yesterday/tomorrow navigation for daily notes.";
+        };
+
+        defaultTags = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ "daily-notes" ];
+          description = "Default tags added to daily notes.";
+        };
+      };
+
+      templates = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = "Enable template support in obsidian.nvim.";
+        };
+
+        folder = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = "templates";
+          description = "Folder for templates, relative to each vault root.";
+        };
+      };
+
+      attachments = {
+        folder = lib.mkOption {
+          type = lib.types.str;
+          default = "attachments";
+          description = "Folder for pasted images and attachments, relative to each vault root.";
+        };
+      };
+    };
+
     secrets = {
       sopsFile = lib.mkOption {
         type = lib.types.nullOr lib.types.path;
@@ -189,6 +267,10 @@ in
       {
         assertion = config.repo.idle.monitorOffSeconds > config.repo.idle.lockSeconds;
         message = "Set repo.idle.monitorOffSeconds higher than repo.idle.lockSeconds.";
+      }
+      {
+        assertion = (!config.repo.obsidian.enable) || config.repo.obsidian.vaults != [ ];
+        message = "Set at least one repo.obsidian.vaults entry when repo.obsidian.enable is true.";
       }
     ];
 
@@ -286,6 +368,7 @@ in
     };
 
     home-manager = {
+      backupFileExtension = "hm-backup";
       useGlobalPkgs = true;
       useUserPackages = true;
       sharedModules = [ inputs.sops-nix.homeManagerModules.sops ];

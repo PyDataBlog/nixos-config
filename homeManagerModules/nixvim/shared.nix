@@ -13,7 +13,7 @@ let
 in
 {
   imports = [
-    ./options.nix
+    ./config-tree.nix
     ./keymaps.nix
     ./mini.nix
     ./lsp.nix
@@ -26,10 +26,10 @@ in
     ./search.nix
     ./kube.nix
     ./markdown.nix
+    ./obsidian.nix
     ./requests.nix
     ./sql.nix
     ./codecompanion.nix
-    ./runtime-files.nix
   ];
 
   extraPlugins = with pkgs.vimPlugins; [ friendly-snippets ];
@@ -78,6 +78,7 @@ in
       marksman
       mermaid-cli
       mediainfo
+      libxml2
       nushell
       opencode
       openssl
@@ -87,6 +88,7 @@ in
       prettierd
       presenterm
       procps
+      pkgs.python3Packages.pylatexenc
       pkgs.python3Packages.debugpy
       ripgrep
       rich-cli

@@ -167,26 +167,51 @@ Current standalone target:
 
 - `.#nixvim`
 - `.#cli`
+- `.#cli-full`
+- `.#tmux`
+- `.#emacs`
+- `.#lf`
+- `.#jj`
+- `.#qalc`
 
 Run it directly from this repo:
 
 ```bash
 nix run .#cli
+nix run .#cli-full
+nix run .#tmux -V
+nix run .#emacs -- --version
+nix run .#lf -- -help
+nix run .#jj -- --version
 nix run .#nixvim
+nix run .#qalc -- -t '1+1'
 ```
 
-`nix run .#cli` launches the portable CLI environment as a configured Nushell session with:
+`nix run .#cli` launches the lean portable CLI environment as a configured Nushell session with:
+
+- the configured Nushell aliases and prompt
+- wrapped `tmux` using this repo's `tmux.conf`
+- wrapped `nvim` using a lightweight Neovim binary
+- the core CLI toolset from this flake
+
+`nix run .#cli-full` launches the full portable workbench with:
 
 - the configured Nushell aliases and prompt
 - wrapped `tmux` using this repo's `tmux.conf`
 - wrapped `nvim` using this repo's standalone `.#nixvim`
-- the core CLI toolset from this flake
+- the core CLI, language, Kubernetes, cloud, and media/doc toolsets from this flake
 
 Install it into a profile:
 
 ```bash
 nix profile install .#cli
+nix profile install .#cli-full
+nix profile install .#tmux
+nix profile install .#emacs
+nix profile install .#lf
+nix profile install .#jj
 nix profile install .#nixvim
+nix profile install .#qalc
 ```
 
 After installing `.#cli`, the package exposes:
@@ -194,13 +219,30 @@ After installing `.#cli`, the package exposes:
 - `portable-cli` as an explicit entrypoint
 - wrapped `nu`, `tmux`, and `nvim` in the package itself
 
+After installing `.#cli-full`, the package exposes:
+
+- `portable-cli-full` as an explicit entrypoint
+- wrapped `nu`, `tmux`, and `nvim` in the package itself
+
 Once the repo is published remotely, the standalone targets can be used as:
 
 ```bash
 nix run github:PyDataBlog/nixos-config#cli
+nix run github:PyDataBlog/nixos-config#cli-full
+nix run github:PyDataBlog/nixos-config#tmux -V
+nix run github:PyDataBlog/nixos-config#emacs -- --version
+nix run github:PyDataBlog/nixos-config#lf -- -help
+nix run github:PyDataBlog/nixos-config#jj -- --version
 nix run github:PyDataBlog/nixos-config#nixvim
+nix run github:PyDataBlog/nixos-config#qalc -- -t '1+1'
 nix profile install github:PyDataBlog/nixos-config#cli
+nix profile install github:PyDataBlog/nixos-config#cli-full
+nix profile install github:PyDataBlog/nixos-config#tmux
+nix profile install github:PyDataBlog/nixos-config#emacs
+nix profile install github:PyDataBlog/nixos-config#lf
+nix profile install github:PyDataBlog/nixos-config#jj
 nix profile install github:PyDataBlog/nixos-config#nixvim
+nix profile install github:PyDataBlog/nixos-config#qalc
 ```
 
 ## Package Placement

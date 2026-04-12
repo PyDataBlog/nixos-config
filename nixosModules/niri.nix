@@ -7,9 +7,11 @@
 }:
 let
   cfg = config.repo.niri;
-  system = pkgs.stdenv.hostPlatform.system;
+  noctalia = import ../lib/noctalia.nix {
+    inherit inputs lib pkgs;
+  };
   ghosttyExe = lib.getExe pkgs.ghostty;
-  noctaliaExe = lib.getExe inputs.noctalia.packages.${system}.default;
+  inherit (noctalia) noctaliaIpcExe startNoctaliaExe;
   playerctlExe = lib.getExe pkgs.playerctl;
   renderOutput = output: ''
     output "${output.name}" {
@@ -18,88 +20,6 @@ let
     }
   '';
   outputConfig = lib.concatStringsSep "\n\n" (map renderOutput cfg.outputs);
-  startNoctaliaExe = lib.getExe (
-    pkgs.writeShellApplication {
-      name = "start-noctalia";
-      runtimeInputs = [
-        pkgs.coreutils
-        pkgs.gnugrep
-        pkgs.procps
-      ];
-      text = ''
-        current_uid="$(id -u)"
-        current_root="$(dirname "$(dirname "${noctaliaExe}")")"
-        current_config_path="$current_root/share/noctalia-shell"
-
-        list_noctalia_pids() {
-          for proc_dir in /proc/[0-9]*; do
-            pid="''${proc_dir##*/}"
-
-            if [ ! -r "$proc_dir/environ" ] || [ ! -L "$proc_dir/exe" ]; then
-              continue
-            fi
-
-            if [ "$(stat -c '%u' "$proc_dir")" != "$current_uid" ]; then
-              continue
-            fi
-
-            if ! grep -azq '^QS_CONFIG_PATH=.*/noctalia-shell\(/shell\.qml\)\?$' "$proc_dir/environ" 2>/dev/null; then
-              continue
-            fi
-
-            qs_exe="$(readlink -f "$proc_dir/exe" 2>/dev/null || true)"
-            case "''${qs_exe##*/}" in
-              quickshell|.quickshell-wrapped)
-                printf '%s\n' "$pid"
-                ;;
-              *)
-                :
-                ;;
-            esac
-          done
-        }
-
-        read_config_path() {
-          tr '\0' '\n' </proc/"$1"/environ 2>/dev/null | grep '^QS_CONFIG_PATH=' | head -n 1 | cut -d= -f2-
-        }
-
-        kill_tree() {
-          target="$1"
-          for child in $(pgrep -P "$target" || true); do
-            kill_tree "$child"
-          done
-          kill "$target" 2>/dev/null || true
-        }
-
-        keep_pid=""
-
-        for pid in $(list_noctalia_pids | sort -rn); do
-          config_path="$(read_config_path "$pid")"
-          normalized_config_path="''${config_path%/shell.qml}"
-
-          if [ -z "$keep_pid" ] && [ "$normalized_config_path" = "$current_config_path" ]; then
-            keep_pid="$pid"
-            continue
-          fi
-
-          kill_tree "$pid"
-
-          for _ in $(seq 1 20); do
-            if ! kill -0 "$pid" 2>/dev/null; then
-              break
-            fi
-            sleep 0.1
-          done
-        done
-
-        if [ -n "$keep_pid" ] && kill -0 "$keep_pid" 2>/dev/null; then
-          exit 0
-        fi
-
-        exec "${noctaliaExe}"
-      '';
-    }
-  );
 
   managedConfig = ''
     input {
@@ -172,22 +92,22 @@ let
         Mod+Shift+Slash { show-hotkey-overlay; }
 
         Mod+T hotkey-overlay-title="Open a Terminal: ghostty" { spawn "${ghosttyExe}"; }
-        Mod+Space hotkey-overlay-title="Toggle Noctalia Launcher" { spawn-sh "${noctaliaExe} ipc call launcher toggle"; }
-        Mod+D hotkey-overlay-title="Toggle Noctalia Launcher" { spawn-sh "${noctaliaExe} ipc call launcher toggle"; }
-        Mod+S hotkey-overlay-title="Toggle Noctalia Control Center" { spawn-sh "${noctaliaExe} ipc call controlCenter toggle"; }
-        Mod+Comma hotkey-overlay-title="Open Noctalia Settings" { spawn-sh "${noctaliaExe} ipc call settings toggle"; }
-        Super+Alt+L hotkey-overlay-title="Lock the Screen: Noctalia" { spawn-sh "${noctaliaExe} ipc call lockScreen lock"; }
+        Mod+Space hotkey-overlay-title="Toggle Noctalia Launcher" { spawn "${noctaliaIpcExe}" "launcher" "toggle"; }
+        Mod+D hotkey-overlay-title="Toggle Noctalia Launcher" { spawn "${noctaliaIpcExe}" "launcher" "toggle"; }
+        Mod+S hotkey-overlay-title="Toggle Noctalia Control Center" { spawn "${noctaliaIpcExe}" "controlCenter" "toggle"; }
+        Mod+Comma hotkey-overlay-title="Open Noctalia Settings" { spawn "${noctaliaIpcExe}" "settings" "toggle"; }
+        Super+Alt+L hotkey-overlay-title="Lock the Screen: Noctalia" { spawn "${noctaliaIpcExe}" "lockScreen" "lock"; }
 
-        XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "${noctaliaExe} ipc call volume increase"; }
-        XF86AudioLowerVolume allow-when-locked=true { spawn-sh "${noctaliaExe} ipc call volume decrease"; }
-        XF86AudioMute allow-when-locked=true { spawn-sh "${noctaliaExe} ipc call volume muteOutput"; }
-        XF86AudioMicMute allow-when-locked=true { spawn-sh "${noctaliaExe} ipc call volume muteInput"; }
+        XF86AudioRaiseVolume allow-when-locked=true { spawn "${noctaliaIpcExe}" "volume" "increase"; }
+        XF86AudioLowerVolume allow-when-locked=true { spawn "${noctaliaIpcExe}" "volume" "decrease"; }
+        XF86AudioMute allow-when-locked=true { spawn "${noctaliaIpcExe}" "volume" "muteOutput"; }
+        XF86AudioMicMute allow-when-locked=true { spawn "${noctaliaIpcExe}" "volume" "muteInput"; }
         XF86AudioPlay allow-when-locked=true { spawn "${playerctlExe}" "play-pause"; }
         XF86AudioStop allow-when-locked=true { spawn "${playerctlExe}" "stop"; }
         XF86AudioPrev allow-when-locked=true { spawn "${playerctlExe}" "previous"; }
         XF86AudioNext allow-when-locked=true { spawn "${playerctlExe}" "next"; }
-        XF86MonBrightnessUp allow-when-locked=true { spawn-sh "${noctaliaExe} ipc call brightness increase"; }
-        XF86MonBrightnessDown allow-when-locked=true { spawn-sh "${noctaliaExe} ipc call brightness decrease"; }
+        XF86MonBrightnessUp allow-when-locked=true { spawn "${noctaliaIpcExe}" "brightness" "increase"; }
+        XF86MonBrightnessDown allow-when-locked=true { spawn "${noctaliaIpcExe}" "brightness" "decrease"; }
 
         Mod+O repeat=false { toggle-overview; }
         Mod+Q repeat=false { close-window; }

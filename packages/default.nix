@@ -20,41 +20,37 @@ let
       exec ${pkgs.kubectl}/bin/kubectl "$@"
     '';
   };
+  lfWrapped = import ../wrappers/lf.nix { inherit pkgs; };
+  jjWrapped = import ../wrappers/jj.nix { inherit pkgs; };
+  qalcWrapped = import ../wrappers/qalc.nix { inherit pkgs; };
   cli =
     (with pkgs; [
       age
-      act
       ast-grep
-      azure-cli
-      azure-storage-azcopy
       bat
       broot
       btop
       bubblewrap
       cargo-release
-      chafa
       cmake
       direnv
       eza
-      exiftool
       fd
       fastfetch
-      ffmpeg
       file
       fzf
       gh
       git
-      glow
       grpcurl
       grc
       hatch
       helix
-      imagemagick
+      jjWrapped
       jq
       just
+      k3d
+      kubectlWrapped
       lazygit
-      mermaid-cli
-      mediainfo
       mkpasswd
       nh
       nix-direnv
@@ -67,16 +63,11 @@ let
       opencode
       openssl
       p7zip
-      pandoc
-      pkgs."poppler-utils"
-      presenterm
+      python3
+      qalcWrapped
       ripgrep
-      rich-cli
       sops
       ssh-to-age
-      tectonic
-      texlab
-      timg
       tree-sitter
       trash-cli
       unzip
@@ -85,7 +76,6 @@ let
       wget
       wl-clipboard
       yazi
-      yt-dlp
       zip
     ])
     ++ [
@@ -93,6 +83,31 @@ let
       codexPkg
     ]
     ++ lib.optionals (pkgsStable != null) [ pkgsStable.curl ];
+  cloudOps = with pkgs; [
+    act
+    azure-cli
+    azure-storage-azcopy
+  ];
+  mediaDocs = with pkgs; [
+    chafa
+    exiftool
+    ffmpeg
+    glow
+    imagemagick
+    mermaid-cli
+    mediainfo
+    pandoc
+    pkgs."poppler-utils"
+    presenterm
+    rich-cli
+    tectonic
+    texlab
+    timg
+    yt-dlp
+  ];
+  notes = with pkgs; [
+    obsidian-export
+  ];
   kubernetes = with pkgs; [
     argocd
     cmctl
@@ -118,6 +133,8 @@ let
     cargo
     clippy
     go
+    nixd
+    nixfmt
     nodejs
     python3
     rustc
@@ -129,9 +146,15 @@ let
 in
 {
   inherit cli;
+  inherit cloudOps;
+  inherit mediaDocs;
+  inherit notes;
   inherit kubernetes;
   inherit languages;
+  inherit lfWrapped;
+  inherit jjWrapped;
   inherit kubectlWrapped;
+  inherit qalcWrapped;
 
   desktop = with pkgs; [
     antigravity

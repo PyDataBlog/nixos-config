@@ -3,13 +3,14 @@
   lib,
   osConfig,
   pkgs,
-  userConfig,
   ...
 }:
 let
-  system = pkgs.stdenv.hostPlatform.system;
+  noctalia = import ../lib/noctalia.nix {
+    inherit inputs lib pkgs;
+  };
   niriExe = lib.getExe pkgs.niri;
-  noctaliaExe = lib.getExe inputs.noctalia.packages.${system}.default;
+  inherit (noctalia) noctaliaIpcExe;
   wlsunsetExe = lib.getExe pkgs.wlsunset;
   location = osConfig.repo.location;
   idle = osConfig.repo.idle;
@@ -19,28 +20,14 @@ let
       name = "niri-idle-session";
       text = ''
         exec "${lib.getExe pkgs.swayidle}" -w \
-          timeout ${toString idle.lockSeconds} '${noctaliaExe} ipc call lockScreen lock' \
+          timeout ${toString idle.lockSeconds} '${noctaliaIpcExe} lockScreen lock' \
           timeout ${toString idle.monitorOffSeconds} '${niriExe} msg action power-off-monitors' resume '${niriExe} msg action power-on-monitors' \
-          before-sleep '${noctaliaExe} ipc call lockScreen lock'
+          before-sleep '${noctaliaIpcExe} lockScreen lock'
       '';
     }
   );
 in
 {
-  home = {
-    username = lib.mkForce userConfig.username;
-    homeDirectory = lib.mkForce userConfig.homeDirectory;
-    stateVersion = userConfig.homeStateVersion;
-
-    sessionVariables = {
-      EDITOR = "nvim";
-      VISUAL = "nvim";
-      TERMINAL = "ghostty";
-    };
-  };
-
-  xdg.enable = true;
-
   home.pointerCursor = {
     package = pkgs.bibata-cursors;
     name = "Bibata-Modern-Ice";
@@ -48,8 +35,6 @@ in
     gtk.enable = true;
     x11.enable = true;
   };
-
-  programs.home-manager.enable = true;
 
   programs.noctalia-shell = {
     enable = true;

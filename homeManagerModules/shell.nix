@@ -57,11 +57,16 @@
     ];
     extraConfig = ''
       set -g status-position top
-      set -as terminal-features ",ghostty:RGB,screen-256color:RGB,tmux-256color:RGB,xterm-256color:RGB"
+      set -as terminal-features ",ghostty:RGB,clipboard,screen-256color:RGB,clipboard,tmux-256color:RGB,clipboard,xterm-256color:RGB,clipboard"
+      set -g allow-passthrough on
       set -g set-clipboard on
 
+      bind-key r run-shell "${pkgs.bash}/bin/bash -lc 'for f in $(tmux display-message -p \"#{config_files}\" | tr \",\" \" \"); do [ -r \"$f\" ] && tmux source-file \"$f\"; done; tmux display-message \"tmux config reloaded\"'"
+      bind-key -T copy-mode-vi Enter send-keys -X copy-selection-and-cancel
       bind-key -T copy-mode-vi v send-keys -X begin-selection
       bind-key -T copy-mode-vi V send-keys -X select-line
+      bind-key -T copy-mode-vi y send-keys -X copy-selection-and-cancel
+      bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-selection-and-cancel
     '';
   };
 
@@ -130,6 +135,60 @@
     };
     extraConfig = ''
       $env.config.buffer_editor = "nvim"
+      $env.PROMPT_INDICATOR = ""
+      $env.PROMPT_INDICATOR_VI_INSERT = ""
+      $env.PROMPT_INDICATOR_VI_NORMAL = "  "
+      $env.PROMPT_MULTILINE_INDICATOR = "⋮ "
+
+      def "nu-complete k3d" [context: string] {
+        let trimmed = ($context | str trim --left)
+        let args = (
+          $trimmed
+          | split row " "
+          | skip 1
+        )
+        let args = if ($trimmed | str ends-with " ") {
+          $args | append ""
+        } else {
+          $args
+        }
+
+        let result = (^k3d __complete ...$args | complete)
+        let lines = ($result.stdout | lines | where {|line| $line != "" })
+
+        if ($lines | is-empty) {
+          return []
+        }
+
+        let last_line = ($lines | last)
+        let candidates = if ($last_line | str starts-with ":") {
+          $lines | first (($lines | length) - 1)
+        } else {
+          $lines
+        }
+
+        if ($candidates | is-empty) {
+          return []
+        }
+
+        $candidates | each {|line|
+          let parts = ($line | split row "\t")
+          if (($parts | length) > 1) {
+            {
+              value: ($parts | first)
+              description: ($parts | skip 1 | str join " ")
+            }
+          } else {
+            { value: ($parts | first) }
+          }
+        }
+      }
+
+      # Keep k3d completion independent from carapace hook ordering by using a
+      # wrapped Nushell command with an explicit completion source.
+      def --wrapped k3d [...rest: string@"nu-complete k3d"] {
+        ^${pkgs.k3d}/bin/k3d ...$rest
+      }
     '';
   };
 
@@ -138,30 +197,94 @@
     enableNushellIntegration = true;
     settings = {
       add_newline = false;
-      format = "$directory$git_branch$git_status$nix_shell$line_break$character";
+      format = "$directory$git_branch$git_status$package$c$cpp$python$golang$rust$nodejs$lua$julia$rlang$php$ruby$zig$terraform$docker_context$nix_shell$line_break$character";
       right_format = "$kubernetes";
       character = {
-        success_symbol = "[>](bold white)";
-        error_symbol = "[x](bold red)";
+        success_symbol = "[❯](bold cyan)";
+        error_symbol = "[❯](bold red)";
       };
       directory = {
+        format = "[󰉋 $path]($style)[$read_only]($read_only_style) ";
+        read_only = " 󰌾";
         truncation_length = 4;
         truncate_to_repo = false;
       };
       git_branch = {
-        format = "[$branch]($style) ";
+        format = "[$symbol$branch]($style) ";
+        symbol = " ";
       };
       git_status = {
         format = "([$all_status$ahead_behind]($style) )";
       };
+      package = {
+        format = "[$symbol$version]($style) ";
+        symbol = "󰏗 ";
+      };
+      c = {
+        format = "[$symbol$version]($style) ";
+        symbol = " ";
+      };
+      cpp = {
+        format = "[$symbol$version]($style) ";
+        symbol = " ";
+      };
+      python = {
+        format = "[$symbol$version]($style) ";
+        symbol = " ";
+      };
+      golang = {
+        format = "[$symbol$version]($style) ";
+        symbol = " ";
+      };
+      rust = {
+        format = "[$symbol$version]($style) ";
+        symbol = " ";
+      };
+      nodejs = {
+        format = "[$symbol$version]($style) ";
+        symbol = " ";
+      };
+      lua = {
+        format = "[$symbol$version]($style) ";
+        symbol = " ";
+      };
+      julia = {
+        format = "[$symbol$version]($style) ";
+        symbol = " ";
+      };
+      rlang = {
+        format = "[$symbol$version]($style) ";
+        symbol = "󰟔 ";
+      };
+      php = {
+        format = "[$symbol$version]($style) ";
+        symbol = " ";
+      };
+      ruby = {
+        format = "[$symbol$version]($style) ";
+        symbol = " ";
+      };
+      zig = {
+        format = "[$symbol$version]($style) ";
+        symbol = " ";
+      };
+      terraform = {
+        format = "[$symbol$version]($style) ";
+        symbol = " ";
+      };
+      docker_context = {
+        format = "[$symbol$context]($style) ";
+        symbol = " ";
+      };
       nix_shell = {
-        format = "[nix:$name]($style) ";
+        format = "[$symbol$name]($style) ";
+        symbol = " ";
       };
       kubernetes = {
         disabled = false;
         format = "[$symbol$context(::$namespace)]($style)";
         style = "bold cyan";
-        symbol = "☸ ";
+        symbol = "󱃾 ";
         contexts = [
           {
             context_pattern = "k3d-(?P<cluster>[\\w-]+)";

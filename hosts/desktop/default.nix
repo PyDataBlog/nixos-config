@@ -40,6 +40,16 @@
     dayTemperature = 6500;
     nightTemperature = 3700;
   };
+  repo.obsidian = lib.mkDefault {
+    enable = true;
+    vaults = [
+      {
+        name = "personal";
+        path = "Notes";
+        strict = false;
+      }
+    ];
+  };
   repo.secrets = lib.mkDefault {
     sopsFile = ../../secrets/desktop.yaml;
     userPasswordHashKey = "user-password-hash";

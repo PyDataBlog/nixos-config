@@ -1,4 +1,10 @@
-{ inputs, pkgs, ... }:
+{
+  config,
+  inputs,
+  lib,
+  pkgs,
+  ...
+}:
 let
   repoPackages = import ../packages {
     inherit pkgs;
@@ -15,5 +21,6 @@ in
       docker-compose
       xwayland-satellite
     ])
-    ++ repoPackages.desktop;
+    ++ repoPackages.desktop
+    ++ lib.optionals config.repo.obsidian.enable [ pkgs.obsidian ];
 }
