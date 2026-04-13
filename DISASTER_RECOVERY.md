@@ -54,7 +54,14 @@ If the current desktop is reformatted and the goal is to restore the full system
 6. Rebuild:
 
    ```bash
-   sudo nixos-rebuild switch --flake .#desktop --accept-flake-config
+   sudo nixos-rebuild switch --flake .#desktop --accept-flake-config --log-format bar-with-logs
+   ```
+
+   Optional richer progress view:
+
+   ```bash
+   sudo -v
+   nix shell nixpkgs#nix-output-monitor -c bash -lc 'sudo nixos-rebuild switch --flake .#desktop --accept-flake-config --log-format raw |& nom'
    ```
 
 7. Reboot.
@@ -100,7 +107,14 @@ Recovery flow:
 5. Rebuild:
 
    ```bash
-   sudo nixos-rebuild switch --flake .#desktop --accept-flake-config
+   sudo nixos-rebuild switch --flake .#desktop --accept-flake-config --log-format bar-with-logs
+   ```
+
+   Optional richer progress view:
+
+   ```bash
+   sudo -v
+   nix shell nixpkgs#nix-output-monitor -c bash -lc 'sudo nixos-rebuild switch --flake .#desktop --accept-flake-config --log-format raw |& nom'
    ```
 
 At that point, the machine can decrypt secrets again through its new host key.

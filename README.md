@@ -35,8 +35,12 @@ Current scope:
 
 WSL support:
 
-- `wslbootstrap` is the minimal NixOS-WSL bootstrap image with only corporate CA trust
+- `wslbootstrap` is the minimal NixOS-WSL bootstrap image with corporate CA trust plus the basic bootstrap tools needed to clone and inspect the repo
 - `workwsl` is the terminal-first NixOS-WSL host, tracked in [WORKWSL_PLAN.md](./WORKWSL_PLAN.md)
+- both WSL hosts accept the corporate CA during impure evaluation from either `ZSCALER_PEM_FILE=/path/to/zscaler.pem` or inline `ZSCALER_PEM`
+- installed WSL hosts persist the active corporate CA at `/var/lib/nixos-config/corporate-ca.pem`, so later on-device rebuilds do not need the PEM env passed again
+- the flake exports the `nix-community` cache via `nixConfig`, so `--accept-flake-config` also enables cached Neovim nightly substitutes
+- desktop-side builds, CI, or CA refreshes on the intercepted work network should still pass the chosen CA input explicitly, for example `sudo env ZSCALER_PEM_FILE=/path/to/zscaler.pem ... --impure`
 
 ## Layout
 
@@ -57,10 +61,19 @@ The repo is intentionally split by responsibility:
 From the repo root:
 
 ```bash
-sudo nixos-rebuild switch --flake .#desktop --accept-flake-config
+sudo nixos-rebuild switch --flake .#desktop --accept-flake-config --log-format bar-with-logs
 ```
 
-The extra flag allows flake-provided cache settings to be used immediately.
+The extra flag allows flake-provided cache settings to be used immediately, including the `nix-community` cache used for Neovim nightly substitutes.
+
+Optional richer progress view with `nom`:
+
+```bash
+sudo -v
+nix shell nixpkgs#nix-output-monitor -c bash -lc 'sudo nixos-rebuild switch --flake .#desktop --accept-flake-config --log-format raw |& nom'
+```
+
+Use `--log-format raw` with `nom` so `nom` can render the progress display itself.
 
 ## Host Data
 

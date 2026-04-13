@@ -104,7 +104,7 @@ That means:
 
 `wslbootstrap` is even narrower than that:
 
-- no repo tooling
+- just the repo/bootstrap tooling that is always needed (`git` and `gh`)
 - no developer stack
 - no Home Manager feature layering beyond what is absolutely required
 - just enough system state to boot, trust the corporate CA, and reach the network successfully
@@ -121,7 +121,9 @@ Chosen path:
 Current implementation:
 
 - the repo does not track the PEM
-- [nixosModules/corporate-ca.nix](./nixosModules/corporate-ca.nix) reads `ZSCALER_PEM_FILE` during impure evaluation and turns it into a real store path
+- [nixosModules/corporate-ca.nix](./nixosModules/corporate-ca.nix) accepts either inline `ZSCALER_PEM` or `ZSCALER_PEM_FILE` during impure evaluation and turns it into a real store path
+- that module also folds the PEM into nixpkgs `cacert`, so `fetchgit` builders use the same trust bundle as the host
+- the active CA is persisted on installed hosts at `/var/lib/nixos-config/corporate-ca.pem`, so later on-device WSL rebuilds can reuse it without passing the PEM again
 - the release workflow materializes `ZSCALER_PEM` into a temporary file and exports `ZSCALER_PEM_FILE`
 
 ## Current Repo Shape
@@ -136,6 +138,7 @@ The repo is now split enough to support WSL cleanly:
 - [nixosModules/desktop-services.nix](./nixosModules/desktop-services.nix) and [nixosModules/desktop-packages.nix](./nixosModules/desktop-packages.nix) isolate desktop-only behavior
 - [features/nixos/wsl.nix](./features/nixos/wsl.nix) owns the common WSL system feature
 - [nixosModules/corporate-ca.nix](./nixosModules/corporate-ca.nix) owns CA trust wiring
+- [flake.nix](./flake.nix) now exports the `nix-community` cache via `nixConfig`, so `--accept-flake-config` can substitute Neovim nightly instead of source-building it
 - `workwsl` now reuses the desktop SOPS password hash and expects the personal age key at `~/.config/sops/age/keys.txt`
 - `wslbootstrap` keeps passwordless sudo for first-boot convenience; `workwsl` does not
 - [flake/checks.nix](./flake/checks.nix) now includes explicit `workwsl`, `wslbootstrap`, and `wslbootstrap` tarball-builder checks
@@ -348,7 +351,7 @@ Planned shape:
   - `../../features/nixos/wsl.nix`
 - set:
   - `networking.hostName = "wslbootstrap"`
-  - `wsl.defaultUser = "bebr"`
+  - `wsl.defaultUser = repo.user.username`
   - `system.stateVersion = "<chosen version>"`
 - include only certificate trust and whatever user/default shell state is required for first login
 - use `repo.workNetwork.certificateFile` via [nixosModules/corporate-ca.nix](./nixosModules/corporate-ca.nix)
@@ -377,7 +380,7 @@ Planned shape:
   - `../../features/nixos/wsl.nix`
 - set:
   - `networking.hostName = "workwsl"`
-  - `wsl.defaultUser = "bebr"`
+  - `wsl.defaultUser = repo.user.username`
   - `repo.user.homeModule = ../../users/workwsl.nix`
   - `programs.nix-ld.enable = true`
   - `repo.obsidian.enable = false`
@@ -472,7 +475,7 @@ Use the minimal `wslbootstrap` host for publishing.
 Planned flow:
 
 ```bash
-ZSCALER_PEM_FILE=/path/to/zscaler.pem sudo nix run .#nixosConfigurations.wslbootstrap.config.system.build.tarballBuilder --accept-flake-config --impure
+sudo env ZSCALER_PEM_FILE=/path/to/zscaler.pem nix run .#nixosConfigurations.wslbootstrap.config.system.build.tarballBuilder --accept-flake-config --impure
 ```
 
 Expected result:
@@ -540,8 +543,17 @@ git clone git@github.com:PyDataBlog/nixos-config.git
 From the repo root inside WSL:
 
 ```bash
-sudo nixos-rebuild switch --flake .#workwsl --accept-flake-config
+sudo nixos-rebuild switch --flake .#workwsl --accept-flake-config --impure --log-format bar-with-logs
 ```
+
+Optional richer progress view:
+
+```bash
+sudo -v
+nix shell nixpkgs#nix-output-monitor -c bash -lc 'sudo nixos-rebuild switch --flake .#workwsl --accept-flake-config --impure --log-format raw |& nom'
+```
+
+`wslbootstrap` persists the active corporate CA at `/var/lib/nixos-config/corporate-ca.pem`, so the first `workwsl` switch can reuse that host-local copy without re-passing `ZSCALER_PEM_FILE`.
 
 Then restart the distro if required:
 
@@ -616,13 +628,22 @@ cd nixos-config
 Run inside the repo:
 
 ```bash
-sudo nixos-rebuild switch --flake .#workwsl --accept-flake-config
+sudo nixos-rebuild switch --flake .#workwsl --accept-flake-config --impure --log-format bar-with-logs
+```
+
+Optional richer progress view:
+
+```bash
+sudo -v
+nix shell nixpkgs#nix-output-monitor -c bash -lc 'sudo nixos-rebuild switch --flake .#workwsl --accept-flake-config --impure --log-format raw |& nom'
 ```
 
 Behavior note:
 
 - `wslbootstrap` has passwordless sudo
 - `workwsl` requires the normal password again
+- `wslbootstrap` persists the active corporate CA at `/var/lib/nixos-config/corporate-ca.pem`, so later on-device rebuilds can reuse that local copy without the PEM env
+- the activation path now re-applies the declarative password hash after user management if `/etc/shadow` did not pick it up on the first switch
 
 ### 7. Restart the distro once
 
@@ -719,12 +740,12 @@ This order keeps the risk low.
 
 The `workwsl` work is done when all of these are true:
 
-- `nix build --no-link .#nixosConfigurations.wslbootstrap.config.system.build.toplevel` succeeds on the desktop
-- `nix build --no-link .#nixosConfigurations.workwsl.config.system.build.toplevel` succeeds on the desktop
+- `ZSCALER_PEM_FILE=/path/to/zscaler.pem nix build --no-link .#nixosConfigurations.wslbootstrap.config.system.build.toplevel --accept-flake-config --impure` succeeds on the desktop
+- `ZSCALER_PEM_FILE=/path/to/zscaler.pem nix build --no-link .#nixosConfigurations.workwsl.config.system.build.toplevel --accept-flake-config --impure` succeeds on the desktop
 - the published or locally built bootstrap WSL image installs successfully
 - the new WSL instance can reach GitHub and `cache.nixos.org` without TLS errors
 - the repo can be cloned inside WSL without temporary certificate hacks
-- `sudo nixos-rebuild switch --flake .#workwsl --accept-flake-config` succeeds on the work laptop
+- `sudo nixos-rebuild switch --flake .#workwsl --accept-flake-config --impure --log-format bar-with-logs` succeeds on the work laptop
 - the first interactive shell has the expected terminal-first environment:
   - `nu`
   - `tmux`

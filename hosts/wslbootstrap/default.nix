@@ -1,22 +1,34 @@
 {
+  config,
   lib,
   pkgs,
   repoLib,
   ...
 }:
 {
-  imports = [ ../../features/nixos/wsl.nix ];
+  imports = [
+    ../../nixosModules/repo-user.nix
+    ../../features/nixos/wsl.nix
+  ];
 
   networking.hostName = "wslbootstrap";
 
-  wsl.defaultUser = repoLib.primaryUser.username;
+  wsl.defaultUser = config.repo.user.username;
 
   security.sudo.wheelNeedsPassword = lib.mkForce false;
 
-  users.users.${repoLib.primaryUser.username} = {
+  repo.user = lib.mkDefault (
+    repoLib.primaryUser
+    // {
+      extraGroups = [ "wheel" ];
+    }
+  );
+
+  users.users.${config.repo.user.username} = {
     isNormalUser = true;
-    extraGroups = [ "wheel" ];
-    home = repoLib.primaryUser.homeDirectory;
+    description = config.repo.user.description;
+    extraGroups = config.repo.user.extraGroups;
+    home = config.repo.user.homeDirectory;
     shell = pkgs.bashInteractive;
   };
 
@@ -27,6 +39,7 @@
 
   environment.systemPackages = with pkgs; [
     curl
+    gh
     git
     wget
   ];
