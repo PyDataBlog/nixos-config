@@ -1,4 +1,5 @@
 {
+  config,
   lib,
   repoLib,
   ...
@@ -11,14 +12,14 @@
 
   networking.hostName = "workwsl";
 
-  wsl.defaultUser = repoLib.primaryUser.username;
+  wsl.defaultUser = config.repo.user.username;
 
   users.mutableUsers = false;
   security.sudo.wheelNeedsPassword = lib.mkForce true;
 
   programs.nix-ld.enable = true;
 
-  sops.age.keyFile = lib.mkDefault "${repoLib.primaryUser.homeDirectory}/.config/sops/age/keys.txt";
+  sops.age.keyFile = lib.mkDefault "${config.repo.user.homeDirectory}/.config/sops/age/keys.txt";
 
   repo.user = lib.mkDefault (
     repoLib.primaryUser

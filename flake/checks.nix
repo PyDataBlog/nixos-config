@@ -8,13 +8,20 @@
       desktopHomePackageNames = builtins.map (
         pkg: pkg.name or pkg.pname or "unknown"
       ) hmUser.home.packages;
+      adopterUser = self.lib.primaryUser // {
+        username = "adopter";
+        description = "Adopter";
+        homeDirectory = "/home/adopter";
+        homeModule = ../users/workwsl.nix;
+        extraGroups = [ "wheel" ];
+      };
       corporateCaForChecks = pkgs.runCommandLocal "corporate-ca-check.pem" { } ''
         cp ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt "$out"
       '';
       wslbootstrapCheck = self.nixosConfigurations.wslbootstrap.extendModules {
         modules = [
           {
-            repo.workNetwork.certificateFile = corporateCaForChecks;
+            repo.workNetwork.persistedCertificateFile = corporateCaForChecks;
           }
         ];
       };
@@ -24,12 +31,13 @@
       workwslCheck = self.nixosConfigurations.workwsl.extendModules {
         modules = [
           {
-            repo.workNetwork.certificateFile = corporateCaForChecks;
+            repo.workNetwork.persistedCertificateFile = corporateCaForChecks;
           }
         ];
       };
       workwslPasswordKey = workwslCheck.config.repo.secrets.userPasswordHashKey;
       workwslPasswordSecret = workwslCheck.config.sops.secrets.${workwslPasswordKey};
+      workwslCaPersistenceActivation = workwslCheck.config.system.activationScripts.persistCorporateCa;
       workwslPasswordActivation =
         workwslCheck.config.system.activationScripts.ensurePrimaryUserPasswordHash;
       workwslPasswordUser = workwslCheck.config.repo.user.username;
@@ -38,6 +46,20 @@
         pkg: pkg.name or pkg.pname or "unknown"
       ) workwslHmUser.home.packages;
       workwslCaBundle = workwslCheck.config.security.pki.caBundle;
+      overrideWorkwslUser = self.nixosConfigurations.workwsl.extendModules {
+        modules = [
+          {
+            repo.user = adopterUser;
+          }
+        ];
+      };
+      overrideWslbootstrapUser = self.nixosConfigurations.wslbootstrap.extendModules {
+        modules = [
+          {
+            repo.user = adopterUser;
+          }
+        ];
+      };
       overrideDesktop = self.nixosConfigurations.desktop.extendModules {
         modules = [
           {
@@ -87,6 +109,13 @@
         tmux = self'.packages.tmux;
         workwsl-system = workwslCheck.config.system.build.toplevel;
         workwsl-corporate-ca-smoke = pkgs.runCommandLocal "workwsl-corporate-ca-smoke" { } ''
+          script_file=${pkgs.writeText "workwsl-persist-corporate-ca.sh" workwslCaPersistenceActivation.text}
+
+          [ "${
+            if workwslCheck.config.repo.workNetwork.certificateFile == null then "true" else "false"
+          }" = "true" ]
+          [ "${workwslCheck.config.repo.workNetwork.persistedCertificateFile}" = "${corporateCaForChecks}" ]
+          [ "${workwslCheck.config.repo.workNetwork.persistedCertificatePath}" = "/var/lib/nixos-config/corporate-ca.pem" ]
           [ "${workwslCheck.config.nix.settings.ssl-cert-file}" = "${workwslCaBundle}" ]
           [ "${workwslCheck.config.environment.variables.SSL_CERT_FILE}" = "${workwslCaBundle}" ]
           [ "${workwslCheck.config.environment.variables.NIX_SSL_CERT_FILE}" = "${workwslCaBundle}" ]
@@ -96,6 +125,8 @@
           [ "${workwslCheck.config.environment.variables.AWS_CA_BUNDLE}" = "${workwslCaBundle}" ]
           [ "${workwslCheck.config.environment.variables.NODE_EXTRA_CA_CERTS}" = "${workwslCaBundle}" ]
           [ "${workwslCheck.config.environment.variables.REQUESTS_CA_BUNDLE}" = "${workwslCaBundle}" ]
+          grep -Fq 'would persist corporate CA to /var/lib/nixos-config/corporate-ca.pem' "$script_file"
+          grep -Fq '${pkgs.coreutils}/bin/install -Dm0644 ${corporateCaForChecks}' "$script_file"
           touch "$out"
         '';
         workwsl-password-hash-smoke = pkgs.runCommandLocal "workwsl-password-hash-smoke" { } ''
@@ -121,6 +152,37 @@
 
               touch "$out"
             '';
+        wsl-user-override-smoke = pkgs.runCommandLocal "wsl-user-override-smoke" { } ''
+          [ "${overrideWorkwslUser.config.wsl.defaultUser}" = "${adopterUser.username}" ]
+          [ "${overrideWorkwslUser.config.sops.age.keyFile}" = "${adopterUser.homeDirectory}/.config/sops/age/keys.txt" ]
+          [ "${
+            overrideWorkwslUser.config.users.users.${adopterUser.username}.home
+          }" = "${adopterUser.homeDirectory}" ]
+          [ "${
+            if builtins.hasAttr adopterUser.username overrideWorkwslUser.config.home-manager.users then
+              "true"
+            else
+              "false"
+          }" = "true" ]
+          [ "${overrideWslbootstrapUser.config.wsl.defaultUser}" = "${adopterUser.username}" ]
+          [ "${
+            overrideWslbootstrapUser.config.users.users.${adopterUser.username}.home
+          }" = "${adopterUser.homeDirectory}" ]
+          [ "${
+            if builtins.hasAttr adopterUser.username overrideWslbootstrapUser.config.users.users then
+              "true"
+            else
+              "false"
+          }" = "true" ]
+          [ "${
+            if builtins.hasAttr self.lib.primaryUsername overrideWslbootstrapUser.config.users.users then
+              "true"
+            else
+              "false"
+          }" = "false" ]
+
+          touch "$out"
+        '';
         wslbootstrap-bootstrap-tools-smoke =
           pkgs.runCommandLocal "wslbootstrap-bootstrap-tools-smoke" { }
             ''
