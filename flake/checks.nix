@@ -103,6 +103,16 @@
 
           touch "$out"
         '';
+        workwsl-rebuild-script-smoke = pkgs.runCommandLocal "workwsl-rebuild-script-smoke" { } ''
+          script=${../scripts/workwsl-rebuild}
+
+          ${pkgs.bash}/bin/bash -n "$script"
+          grep -Fq 'NIX_SSL_CERT_FILE="''${ca_bundle}"' "$script"
+          grep -Fq -- '--option ssl-cert-file "''${ca_bundle}"' "$script"
+          grep -Fq 'nixos-rebuild switch' "$script"
+
+          touch "$out"
+        '';
         wslbootstrap-system = wslbootstrapCheck.config.system.build.toplevel;
         wslbootstrap-tarball = wslbootstrapCheck.config.system.build.tarballBuilder;
         emacs-smoke = pkgs.runCommandLocal "emacs-smoke" { } ''

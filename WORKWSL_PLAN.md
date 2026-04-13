@@ -542,15 +542,17 @@ git clone git@github.com:PyDataBlog/nixos-config.git
 From the repo root inside WSL:
 
 ```bash
-sudo env ZSCALER_PEM_FILE=/path/to/zscaler.pem nixos-rebuild switch --flake .#workwsl --accept-flake-config --impure --log-format bar-with-logs
+ZSCALER_PEM_FILE=/path/to/zscaler.pem ./scripts/workwsl-rebuild --log-format bar-with-logs
 ```
 
 Optional richer progress view:
 
 ```bash
 sudo -v
-nix shell nixpkgs#nix-output-monitor -c bash -lc 'sudo env ZSCALER_PEM_FILE=/path/to/zscaler.pem nixos-rebuild switch --flake .#workwsl --accept-flake-config --impure --log-format raw |& nom'
+nix shell nixpkgs#nix-output-monitor -c bash -lc 'ZSCALER_PEM_FILE=/path/to/zscaler.pem ./scripts/workwsl-rebuild --log-format raw |& nom'
 ```
+
+This helper is only needed for the first on-device `workwsl` switch when the currently running daemon still lacks the corporate CA. After the switch succeeds, plain `sudo nixos-rebuild switch ...` is fine again.
 
 Then restart the distro if required:
 

@@ -40,6 +40,7 @@ WSL support:
 - both WSL hosts accept the corporate CA during impure evaluation from either `ZSCALER_PEM_FILE=/path/to/zscaler.pem` or inline `ZSCALER_PEM`
 - the flake exports the `nix-community` cache via `nixConfig`, so `--accept-flake-config` also enables cached Neovim nightly substitutes
 - when building or switching those hosts on the intercepted work network, pass the chosen CA input through `sudo` explicitly, for example `sudo env ZSCALER_PEM_FILE=/path/to/zscaler.pem ... --impure`
+- if an existing WSL instance cannot complete its first `workwsl` switch because the current Nix daemon does not yet trust the corporate CA, use `./scripts/workwsl-rebuild` for that first on-device switch
 
 ## Layout
 
@@ -73,6 +74,14 @@ nix shell nixpkgs#nix-output-monitor -c bash -lc 'sudo nixos-rebuild switch --fl
 ```
 
 Use `--log-format raw` with `nom` so `nom` can render the progress display itself.
+
+For the first on-device `workwsl` switch on an already-bootstrapped WSL instance behind the corporate TLS proxy:
+
+```bash
+ZSCALER_PEM_FILE=/path/to/zscaler.pem ./scripts/workwsl-rebuild --log-format bar-with-logs
+```
+
+The helper builds a temporary CA bundle from the system bundle plus the corporate CA and passes it to the current daemon with `ssl-cert-file` for that bootstrap switch.
 
 ## Host Data
 
