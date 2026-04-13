@@ -15,6 +15,9 @@
           }
         ];
       };
+      wslbootstrapSystemPackageNames = builtins.map (
+        pkg: pkg.name or pkg.pname or "unknown"
+      ) wslbootstrapCheck.config.environment.systemPackages;
       workwslCheck = self.nixosConfigurations.workwsl.extendModules {
         modules = [
           {
@@ -113,6 +116,24 @@
 
           touch "$out"
         '';
+        wslbootstrap-bootstrap-tools-smoke =
+          pkgs.runCommandLocal "wslbootstrap-bootstrap-tools-smoke" { }
+            ''
+              [ "${
+                if builtins.any (name: pkgs.lib.hasPrefix "git-" name) wslbootstrapSystemPackageNames then
+                  "true"
+                else
+                  "false"
+              }" = "true" ]
+              [ "${
+                if builtins.any (name: pkgs.lib.hasPrefix "gh-" name) wslbootstrapSystemPackageNames then
+                  "true"
+                else
+                  "false"
+              }" = "true" ]
+
+              touch "$out"
+            '';
         wslbootstrap-system = wslbootstrapCheck.config.system.build.toplevel;
         wslbootstrap-tarball = wslbootstrapCheck.config.system.build.tarballBuilder;
         emacs-smoke = pkgs.runCommandLocal "emacs-smoke" { } ''

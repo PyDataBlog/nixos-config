@@ -27,6 +27,7 @@
 
   environment.systemPackages = with pkgs; [
     curl
+    gh
     git
     wget
   ];

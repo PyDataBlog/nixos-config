@@ -104,7 +104,7 @@ That means:
 
 `wslbootstrap` is even narrower than that:
 
-- no repo tooling
+- just the repo/bootstrap tooling that is always needed (`git` and `gh`)
 - no developer stack
 - no Home Manager feature layering beyond what is absolutely required
 - just enough system state to boot, trust the corporate CA, and reach the network successfully
