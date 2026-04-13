@@ -60,10 +60,19 @@ The repo is intentionally split by responsibility:
 From the repo root:
 
 ```bash
-sudo nixos-rebuild switch --flake .#desktop --accept-flake-config
+sudo nixos-rebuild switch --flake .#desktop --accept-flake-config --log-format bar-with-logs
 ```
 
 The extra flag allows flake-provided cache settings to be used immediately, including the `nix-community` cache used for Neovim nightly substitutes.
+
+Optional richer progress view with `nom`:
+
+```bash
+sudo -v
+nix shell nixpkgs#nix-output-monitor -c bash -lc 'sudo nixos-rebuild switch --flake .#desktop --accept-flake-config --log-format raw |& nom'
+```
+
+Use `--log-format raw` with `nom` so `nom` can render the progress display itself.
 
 ## Host Data
 

@@ -542,7 +542,14 @@ git clone git@github.com:PyDataBlog/nixos-config.git
 From the repo root inside WSL:
 
 ```bash
-sudo env ZSCALER_PEM_FILE=/path/to/zscaler.pem nixos-rebuild switch --flake .#workwsl --accept-flake-config --impure
+sudo env ZSCALER_PEM_FILE=/path/to/zscaler.pem nixos-rebuild switch --flake .#workwsl --accept-flake-config --impure --log-format bar-with-logs
+```
+
+Optional richer progress view:
+
+```bash
+sudo -v
+nix shell nixpkgs#nix-output-monitor -c bash -lc 'sudo env ZSCALER_PEM_FILE=/path/to/zscaler.pem nixos-rebuild switch --flake .#workwsl --accept-flake-config --impure --log-format raw |& nom'
 ```
 
 Then restart the distro if required:
@@ -618,7 +625,14 @@ cd nixos-config
 Run inside the repo:
 
 ```bash
-sudo env ZSCALER_PEM_FILE=/path/to/zscaler.pem nixos-rebuild switch --flake .#workwsl --accept-flake-config --impure
+sudo env ZSCALER_PEM_FILE=/path/to/zscaler.pem nixos-rebuild switch --flake .#workwsl --accept-flake-config --impure --log-format bar-with-logs
+```
+
+Optional richer progress view:
+
+```bash
+sudo -v
+nix shell nixpkgs#nix-output-monitor -c bash -lc 'sudo env ZSCALER_PEM_FILE=/path/to/zscaler.pem nixos-rebuild switch --flake .#workwsl --accept-flake-config --impure --log-format raw |& nom'
 ```
 
 Behavior note:
@@ -726,7 +740,7 @@ The `workwsl` work is done when all of these are true:
 - the published or locally built bootstrap WSL image installs successfully
 - the new WSL instance can reach GitHub and `cache.nixos.org` without TLS errors
 - the repo can be cloned inside WSL without temporary certificate hacks
-- `sudo env ZSCALER_PEM_FILE=/path/to/zscaler.pem nixos-rebuild switch --flake .#workwsl --accept-flake-config --impure` succeeds on the work laptop
+- `sudo env ZSCALER_PEM_FILE=/path/to/zscaler.pem nixos-rebuild switch --flake .#workwsl --accept-flake-config --impure --log-format bar-with-logs` succeeds on the work laptop
 - the first interactive shell has the expected terminal-first environment:
   - `nu`
   - `tmux`
