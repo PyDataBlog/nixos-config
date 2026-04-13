@@ -5,6 +5,9 @@
     let
       primaryUsername = self.nixosConfigurations.desktop.config.repo.user.username;
       hmUser = self.nixosConfigurations.desktop.config.home-manager.users.${primaryUsername};
+      desktopHomePackageNames = builtins.map (
+        pkg: pkg.name or pkg.pname or "unknown"
+      ) hmUser.home.packages;
       corporateCaForChecks = pkgs.runCommandLocal "corporate-ca-check.pem" { } ''
         cp ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt "$out"
       '';
@@ -30,6 +33,10 @@
       workwslPasswordActivation =
         workwslCheck.config.system.activationScripts.ensurePrimaryUserPasswordHash;
       workwslPasswordUser = workwslCheck.config.repo.user.username;
+      workwslHmUser = workwslCheck.config.home-manager.users.${workwslPasswordUser};
+      workwslHomePackageNames = builtins.map (
+        pkg: pkg.name or pkg.pname or "unknown"
+      ) workwslHmUser.home.packages;
       workwslCaBundle = workwslCheck.config.security.pki.caBundle;
       overrideDesktop = self.nixosConfigurations.desktop.extendModules {
         modules = [
@@ -106,6 +113,14 @@
 
           touch "$out"
         '';
+        desktop-workwsl-editor-split-smoke =
+          pkgs.runCommandLocal "desktop-workwsl-editor-split-smoke" { }
+            ''
+              [ "${if builtins.elem "emacs" desktopHomePackageNames then "true" else "false"}" = "true" ]
+              [ "${if builtins.elem "emacs" workwslHomePackageNames then "true" else "false"}" = "false" ]
+
+              touch "$out"
+            '';
         wslbootstrap-bootstrap-tools-smoke =
           pkgs.runCommandLocal "wslbootstrap-bootstrap-tools-smoke" { }
             ''
