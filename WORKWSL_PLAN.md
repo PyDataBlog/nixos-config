@@ -121,7 +121,7 @@ Chosen path:
 Current implementation:
 
 - the repo does not track the PEM
-- [nixosModules/corporate-ca.nix](./nixosModules/corporate-ca.nix) reads `ZSCALER_PEM_FILE` during impure evaluation and turns it into a real store path
+- [nixosModules/corporate-ca.nix](./nixosModules/corporate-ca.nix) accepts either inline `ZSCALER_PEM` or `ZSCALER_PEM_FILE` during impure evaluation and turns it into a real store path
 - that module also folds the PEM into nixpkgs `cacert`, so `fetchgit` builders use the same trust bundle as the host
 - the release workflow materializes `ZSCALER_PEM` into a temporary file and exports `ZSCALER_PEM_FILE`
 
@@ -639,6 +639,7 @@ Behavior note:
 
 - `wslbootstrap` has passwordless sudo
 - `workwsl` requires the normal password again
+- the activation path now re-applies the declarative password hash after user management if `/etc/shadow` did not pick it up on the first switch
 
 ### 7. Restart the distro once
 

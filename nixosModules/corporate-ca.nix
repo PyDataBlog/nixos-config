@@ -4,16 +4,20 @@
   ...
 }:
 let
+  envPem = builtins.getEnv "ZSCALER_PEM";
   envPemFile = builtins.getEnv "ZSCALER_PEM_FILE";
-  envPemPath =
+  envPemFilePath =
     if envPemFile == "" then
       null
-    else
+    else if builtins.pathExists envPemFile then
       builtins.path {
         path = envPemFile;
         name = "corporate-ca.pem";
-      };
-  caBundlePath = "/etc/ssl/certs/ca-bundle.crt";
+      }
+    else
+      throw "ZSCALER_PEM_FILE points to a missing file: ${envPemFile}";
+  envPemPath = if envPem != "" then builtins.toFile "corporate-ca.pem" envPem else envPemFilePath;
+  caBundlePath = config.security.pki.caBundle;
 in
 {
   options.repo.workNetwork.certificateFile = lib.mkOption {
@@ -24,13 +28,11 @@ in
 
   config = lib.mkIf (config.repo.workNetwork.certificateFile != null) {
     nixpkgs.overlays = lib.mkBefore [
-      (
-        final: prev: {
-          cacert = prev.cacert.override {
-            extraCertificateFiles = [ config.repo.workNetwork.certificateFile ];
-          };
-        }
-      )
+      (_: prev: {
+        cacert = prev.cacert.override {
+          extraCertificateFiles = [ config.repo.workNetwork.certificateFile ];
+        };
+      })
     ];
 
     security.pki.certificateFiles = [ config.repo.workNetwork.certificateFile ];
@@ -38,9 +40,13 @@ in
     nix.settings.ssl-cert-file = caBundlePath;
 
     environment.variables = {
+      AWS_CA_BUNDLE = caBundlePath;
+      CURL_CA_BUNDLE = caBundlePath;
       GIT_SSL_CAINFO = caBundlePath;
       NIX_GIT_SSL_CAINFO = caBundlePath;
       NIX_SSL_CERT_FILE = caBundlePath;
+      NODE_EXTRA_CA_CERTS = caBundlePath;
+      REQUESTS_CA_BUNDLE = caBundlePath;
       SSL_CERT_FILE = caBundlePath;
     };
   };

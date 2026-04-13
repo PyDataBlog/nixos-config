@@ -22,6 +22,12 @@
           }
         ];
       };
+      workwslPasswordKey = workwslCheck.config.repo.secrets.userPasswordHashKey;
+      workwslPasswordSecret = workwslCheck.config.sops.secrets.${workwslPasswordKey};
+      workwslPasswordActivation =
+        workwslCheck.config.system.activationScripts.ensurePrimaryUserPasswordHash;
+      workwslPasswordUser = workwslCheck.config.repo.user.username;
+      workwslCaBundle = workwslCheck.config.security.pki.caBundle;
       overrideDesktop = self.nixosConfigurations.desktop.extendModules {
         modules = [
           {
@@ -70,6 +76,33 @@
         emacs = self'.packages.emacs;
         tmux = self'.packages.tmux;
         workwsl-system = workwslCheck.config.system.build.toplevel;
+        workwsl-corporate-ca-smoke = pkgs.runCommandLocal "workwsl-corporate-ca-smoke" { } ''
+          [ "${workwslCheck.config.nix.settings.ssl-cert-file}" = "${workwslCaBundle}" ]
+          [ "${workwslCheck.config.environment.variables.SSL_CERT_FILE}" = "${workwslCaBundle}" ]
+          [ "${workwslCheck.config.environment.variables.NIX_SSL_CERT_FILE}" = "${workwslCaBundle}" ]
+          [ "${workwslCheck.config.environment.variables.GIT_SSL_CAINFO}" = "${workwslCaBundle}" ]
+          [ "${workwslCheck.config.environment.variables.NIX_GIT_SSL_CAINFO}" = "${workwslCaBundle}" ]
+          [ "${workwslCheck.config.environment.variables.CURL_CA_BUNDLE}" = "${workwslCaBundle}" ]
+          [ "${workwslCheck.config.environment.variables.AWS_CA_BUNDLE}" = "${workwslCaBundle}" ]
+          [ "${workwslCheck.config.environment.variables.NODE_EXTRA_CA_CERTS}" = "${workwslCaBundle}" ]
+          [ "${workwslCheck.config.environment.variables.REQUESTS_CA_BUNDLE}" = "${workwslCaBundle}" ]
+          touch "$out"
+        '';
+        workwsl-password-hash-smoke = pkgs.runCommandLocal "workwsl-password-hash-smoke" { } ''
+          script_file=${pkgs.writeText "workwsl-password-hash-activation.sh" workwslPasswordActivation.text}
+
+          [ "${if workwslCheck.config.users.mutableUsers then "true" else "false"}" = "false" ]
+          [ "${if workwslPasswordSecret.neededForUsers then "true" else "false"}" = "true" ]
+          [ "${
+            workwslCheck.config.users.users.${workwslPasswordUser}.hashedPasswordFile
+          }" = "${workwslPasswordSecret.path}" ]
+          [ "${if builtins.elem "users" workwslPasswordActivation.deps then "true" else "false"}" = "true" ]
+          grep -Fq 'would verify declarative password hash for ${workwslPasswordUser}' "$script_file"
+          grep -Fq '${workwslPasswordSecret.path}' "$script_file"
+          grep -Fq '${pkgs.shadow}/bin/usermod -p "$desired_hash" ${workwslPasswordUser}' "$script_file"
+
+          touch "$out"
+        '';
         wslbootstrap-system = wslbootstrapCheck.config.system.build.toplevel;
         wslbootstrap-tarball = wslbootstrapCheck.config.system.build.tarballBuilder;
         emacs-smoke = pkgs.runCommandLocal "emacs-smoke" { } ''

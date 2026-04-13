@@ -331,6 +331,32 @@ in
       };
     };
 
+    system.activationScripts.ensurePrimaryUserPasswordHash =
+      lib.mkIf (secretsCfg.userPasswordHashKey != null)
+        {
+          deps = [ "users" ];
+          supportsDryActivation = true;
+          text =
+            let
+              hashFile = lib.escapeShellArg config.sops.secrets.${secretsCfg.userPasswordHashKey}.path;
+              username = lib.escapeShellArg cfg.username;
+              userPrefix = lib.escapeShellArg "${cfg.username}:";
+            in
+            ''
+              if [ "$NIXOS_ACTION" = dry-activate ]; then
+                echo "would verify declarative password hash for ${cfg.username}"
+              elif ${pkgs.gnugrep}/bin/grep -Fq ${userPrefix} /etc/passwd; then
+                desired_hash="$(${pkgs.coreutils}/bin/tr -d '\n' < ${hashFile})"
+                current_hash="$(${pkgs.gawk}/bin/awk -F: -v user=${username} '$1 == user { print $2; exit }' /etc/shadow)"
+
+                if [ -n "$desired_hash" ] && [ "$current_hash" != "$desired_hash" ]; then
+                  echo "updating password hash for ${cfg.username}"
+                  ${pkgs.shadow}/bin/usermod -p "$desired_hash" ${username}
+                fi
+              fi
+            '';
+        };
+
     home-manager = {
       backupFileExtension = "hm-backup";
       useGlobalPkgs = true;

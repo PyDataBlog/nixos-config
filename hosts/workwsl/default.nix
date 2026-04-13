@@ -20,8 +20,6 @@
 
   sops.age.keyFile = lib.mkDefault "${repoLib.primaryUser.homeDirectory}/.config/sops/age/keys.txt";
 
-  repo.workNetwork.certificateFile = /home/bebr/zscaler.pem;
-
   repo.user = lib.mkDefault (
     repoLib.primaryUser
     // {
