@@ -15,6 +15,13 @@
           }
         ];
       };
+      workwslCheck = self.nixosConfigurations.workwsl.extendModules {
+        modules = [
+          {
+            repo.workNetwork.certificateFile = corporateCaForChecks;
+          }
+        ];
+      };
       overrideDesktop = self.nixosConfigurations.desktop.extendModules {
         modules = [
           {
@@ -62,7 +69,7 @@
         cliFull = cliFullPkg;
         emacs = self'.packages.emacs;
         tmux = self'.packages.tmux;
-        workwsl-system = self.nixosConfigurations.workwsl.config.system.build.toplevel;
+        workwsl-system = workwslCheck.config.system.build.toplevel;
         wslbootstrap-system = wslbootstrapCheck.config.system.build.toplevel;
         wslbootstrap-tarball = wslbootstrapCheck.config.system.build.tarballBuilder;
         emacs-smoke = pkgs.runCommandLocal "emacs-smoke" { } ''

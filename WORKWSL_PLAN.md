@@ -122,6 +122,7 @@ Current implementation:
 
 - the repo does not track the PEM
 - [nixosModules/corporate-ca.nix](./nixosModules/corporate-ca.nix) reads `ZSCALER_PEM_FILE` during impure evaluation and turns it into a real store path
+- that module also folds the PEM into nixpkgs `cacert`, so `fetchgit` builders use the same trust bundle as the host
 - the release workflow materializes `ZSCALER_PEM` into a temporary file and exports `ZSCALER_PEM_FILE`
 
 ## Current Repo Shape
@@ -136,6 +137,7 @@ The repo is now split enough to support WSL cleanly:
 - [nixosModules/desktop-services.nix](./nixosModules/desktop-services.nix) and [nixosModules/desktop-packages.nix](./nixosModules/desktop-packages.nix) isolate desktop-only behavior
 - [features/nixos/wsl.nix](./features/nixos/wsl.nix) owns the common WSL system feature
 - [nixosModules/corporate-ca.nix](./nixosModules/corporate-ca.nix) owns CA trust wiring
+- [flake.nix](./flake.nix) now exports the `nix-community` cache via `nixConfig`, so `--accept-flake-config` can substitute Neovim nightly instead of source-building it
 - `workwsl` now reuses the desktop SOPS password hash and expects the personal age key at `~/.config/sops/age/keys.txt`
 - `wslbootstrap` keeps passwordless sudo for first-boot convenience; `workwsl` does not
 - [flake/checks.nix](./flake/checks.nix) now includes explicit `workwsl`, `wslbootstrap`, and `wslbootstrap` tarball-builder checks
@@ -472,7 +474,7 @@ Use the minimal `wslbootstrap` host for publishing.
 Planned flow:
 
 ```bash
-ZSCALER_PEM_FILE=/path/to/zscaler.pem sudo nix run .#nixosConfigurations.wslbootstrap.config.system.build.tarballBuilder --accept-flake-config --impure
+sudo env ZSCALER_PEM_FILE=/path/to/zscaler.pem nix run .#nixosConfigurations.wslbootstrap.config.system.build.tarballBuilder --accept-flake-config --impure
 ```
 
 Expected result:
@@ -540,7 +542,7 @@ git clone git@github.com:PyDataBlog/nixos-config.git
 From the repo root inside WSL:
 
 ```bash
-sudo nixos-rebuild switch --flake .#workwsl --accept-flake-config
+sudo env ZSCALER_PEM_FILE=/path/to/zscaler.pem nixos-rebuild switch --flake .#workwsl --accept-flake-config --impure
 ```
 
 Then restart the distro if required:
@@ -616,7 +618,7 @@ cd nixos-config
 Run inside the repo:
 
 ```bash
-sudo nixos-rebuild switch --flake .#workwsl --accept-flake-config
+sudo env ZSCALER_PEM_FILE=/path/to/zscaler.pem nixos-rebuild switch --flake .#workwsl --accept-flake-config --impure
 ```
 
 Behavior note:
@@ -719,12 +721,12 @@ This order keeps the risk low.
 
 The `workwsl` work is done when all of these are true:
 
-- `nix build --no-link .#nixosConfigurations.wslbootstrap.config.system.build.toplevel` succeeds on the desktop
-- `nix build --no-link .#nixosConfigurations.workwsl.config.system.build.toplevel` succeeds on the desktop
+- `ZSCALER_PEM_FILE=/path/to/zscaler.pem nix build --no-link .#nixosConfigurations.wslbootstrap.config.system.build.toplevel --accept-flake-config --impure` succeeds on the desktop
+- `ZSCALER_PEM_FILE=/path/to/zscaler.pem nix build --no-link .#nixosConfigurations.workwsl.config.system.build.toplevel --accept-flake-config --impure` succeeds on the desktop
 - the published or locally built bootstrap WSL image installs successfully
 - the new WSL instance can reach GitHub and `cache.nixos.org` without TLS errors
 - the repo can be cloned inside WSL without temporary certificate hacks
-- `sudo nixos-rebuild switch --flake .#workwsl --accept-flake-config` succeeds on the work laptop
+- `sudo env ZSCALER_PEM_FILE=/path/to/zscaler.pem nixos-rebuild switch --flake .#workwsl --accept-flake-config --impure` succeeds on the work laptop
 - the first interactive shell has the expected terminal-first environment:
   - `nu`
   - `tmux`

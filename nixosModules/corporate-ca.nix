@@ -1,4 +1,8 @@
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  ...
+}:
 let
   envPemFile = builtins.getEnv "ZSCALER_PEM_FILE";
   envPemPath =
@@ -19,11 +23,23 @@ in
   };
 
   config = lib.mkIf (config.repo.workNetwork.certificateFile != null) {
+    nixpkgs.overlays = lib.mkBefore [
+      (
+        final: prev: {
+          cacert = prev.cacert.override {
+            extraCertificateFiles = [ config.repo.workNetwork.certificateFile ];
+          };
+        }
+      )
+    ];
+
     security.pki.certificateFiles = [ config.repo.workNetwork.certificateFile ];
 
     nix.settings.ssl-cert-file = caBundlePath;
 
-    environment.sessionVariables = {
+    environment.variables = {
+      GIT_SSL_CAINFO = caBundlePath;
+      NIX_GIT_SSL_CAINFO = caBundlePath;
       NIX_SSL_CERT_FILE = caBundlePath;
       SSL_CERT_FILE = caBundlePath;
     };

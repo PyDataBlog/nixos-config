@@ -37,6 +37,9 @@ WSL support:
 
 - `wslbootstrap` is the minimal NixOS-WSL bootstrap image with only corporate CA trust
 - `workwsl` is the terminal-first NixOS-WSL host, tracked in [WORKWSL_PLAN.md](./WORKWSL_PLAN.md)
+- both WSL hosts read the corporate CA from `ZSCALER_PEM_FILE` during impure evaluation
+- the flake exports the `nix-community` cache via `nixConfig`, so `--accept-flake-config` also enables cached Neovim nightly substitutes
+- when building or switching those hosts on the intercepted work network, pass that variable through `sudo` explicitly, for example `sudo env ZSCALER_PEM_FILE=/path/to/zscaler.pem ... --impure`
 
 ## Layout
 
@@ -60,7 +63,7 @@ From the repo root:
 sudo nixos-rebuild switch --flake .#desktop --accept-flake-config
 ```
 
-The extra flag allows flake-provided cache settings to be used immediately.
+The extra flag allows flake-provided cache settings to be used immediately, including the `nix-community` cache used for Neovim nightly substitutes.
 
 ## Host Data
 
