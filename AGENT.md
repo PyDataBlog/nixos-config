@@ -1,14 +1,12 @@
 # AGENT.md
 
-This repo is a desktop-first NixOS flake with multiple host targets and a host-selected primary user.
+This repo is a desktop-first NixOS flake centered on the `desktop` host and a host-selected primary user.
 Treat it as an explicit, portable, git-tracked configuration, not a place for clever abstractions.
 
 ## Scope
 
 - Hosts:
   - `desktop`
-  - `wslbootstrap`
-  - `workwsl`
 - One primary user chosen per host
 - Main package set: `nixos-unstable`
 - Secondary package set: `nixos-25.11` as `pkgsStable`
@@ -17,7 +15,6 @@ Treat it as an explicit, portable, git-tracked configuration, not a place for cl
 ## Repo Shape
 
 - `hosts/` contains machine facts
-- `features/` composes bundles
 - `nixosModules/` implements system behavior
 - `homeManagerModules/` implements user behavior
 - `users/` contains user entrypoints
@@ -44,7 +41,7 @@ Treat everything in `wrappers/` as a standalone shared artifact by default.
 ## Non-Negotiable Rules
 
 - `flake.nix` stays thin
-- Features compose; modules implement
+- Hosts and user entrypoints compose; modules implement
 - No extra host/profile/common abstractions unless there is a real second consumer
 - No import-tree auto-discovery magic
 - Home Manager integration stays in `nixosModules/core.nix`
@@ -54,7 +51,6 @@ Treat everything in `wrappers/` as a standalone shared artifact by default.
 - Shared system packages live in `nixosModules/packages.nix`
 - NVIDIA config stays in `nixosModules/desktop.nix`
 - User packages go in `homeManagerModules/packages.nix`
-- Shared WSL behavior lives in `features/nixos/wsl.nix`
 - Wrappers do not replace Home Manager
 
 ## User Preferences
@@ -67,7 +63,6 @@ Treat everything in `wrappers/` as a standalone shared artifact by default.
 - Default editor: `nvim`
 - User likes cached binaries and expects `--accept-flake-config` on flake commands when useful
 - User is comfortable with bleeding-edge NixOS and NVIDIA
-- `workwsl` is terminal-first; do not treat it as a reduced Linux desktop
 
 ## Current Desktop Stack
 
@@ -165,14 +160,12 @@ When changing any of these, update the matching docs in the same commit:
 - host topology or host purpose:
   - `AGENT.md`
   - `README.md`
-  - `WORKWSL_PLAN.md` when WSL is involved
 - file ownership or architecture boundaries:
   - `AGENT.md`
   - `README.md` if user-facing behavior changed
 - bootstrap, recovery, or secret handling:
   - `README.md`
   - `DISASTER_RECOVERY.md`
-  - `WORKWSL_PLAN.md` for WSL bootstrap/install flow
 - wrapper behavior or exposed standalone artifacts:
   - `AGENT.md`
   - `README.md`
@@ -181,7 +174,7 @@ Practical rule:
 
 - if a change makes an `AGENT.md` statement false, update `AGENT.md` in the same commit
 - if a change makes a README command or workflow description false, update `README.md` in the same commit
-- if a change alters the WSL install or convergence path, update `WORKWSL_PLAN.md` in the same commit
+- if a change alters bootstrap or recovery flow, update the matching README and recovery docs in the same commit
 
 Use `rg` before final review to catch stale references after refactors.
 

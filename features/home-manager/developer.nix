@@ -1,4 +1,0 @@
-{ ... }:
-{
-  imports = [ ./editor-nixvim.nix ];
-}

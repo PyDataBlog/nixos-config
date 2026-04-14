@@ -15,14 +15,12 @@
   - [Package Placement](#package-placement)
   <!--toc:end-->
 
-Desktop-first NixOS flake with multiple host targets and a host-selected primary user declared in NixOS.
+Desktop-first NixOS flake with a single supported `desktop` host and a host-selected primary user declared in NixOS.
 
 Current scope:
 
-- three hosts:
+- one supported host:
   - `desktop`
-  - `wslbootstrap`
-  - `workwsl`
 - one primary user chosen per host
 - `nixos-unstable` as the main package set
 - `nixos-25.11` available as `pkgsStable`
@@ -33,21 +31,13 @@ Current scope:
 - Ghostty + Nushell + Starship
 - Nixvim with a MiniMax-inspired baseline
 
-WSL support:
-
-- `wslbootstrap` is the minimal NixOS-WSL bootstrap image with corporate CA trust plus `git`; pull extra bootstrap tools like `gh` with `nix shell nixpkgs#gh` when needed
-- `workwsl` is the terminal-first NixOS-WSL host, tracked in [WORKWSL_PLAN.md](./WORKWSL_PLAN.md)
-- both WSL hosts accept the corporate CA during impure evaluation from either `ZSCALER_PEM_FILE=/path/to/zscaler.pem` or inline `ZSCALER_PEM`
-- installed WSL hosts persist the active corporate CA at `/var/lib/nixos-config/corporate-ca.pem`, so later on-device rebuilds do not need the PEM env passed again
-- the flake exports the `nix-community` cache via `nixConfig`, so `--accept-flake-config` also enables cached Neovim nightly substitutes
-- desktop-side builds, CI, or CA refreshes on the intercepted work network should still pass the chosen CA input explicitly, for example `sudo env ZSCALER_PEM_FILE=/path/to/zscaler.pem ... --impure`
+The flake exports the `nix-community` cache via `nixConfig`, so `--accept-flake-config` also enables cached Neovim nightly substitutes.
 
 ## Layout
 
 The repo is intentionally split by responsibility:
 
 - `hosts/` for machine facts
-- `features/` for composition bundles
 - `nixosModules/` for system implementation
 - `homeManagerModules/` for user implementation
 - `users/` for user entrypoints
