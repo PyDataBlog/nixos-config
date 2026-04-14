@@ -35,7 +35,7 @@ Current scope:
 
 WSL support:
 
-- `wslbootstrap` is the minimal NixOS-WSL bootstrap image with corporate CA trust plus the basic bootstrap tools needed to clone and inspect the repo
+- `wslbootstrap` is the minimal NixOS-WSL bootstrap image with corporate CA trust plus `git`; pull extra bootstrap tools like `gh` with `nix shell nixpkgs#gh` when needed
 - `workwsl` is the terminal-first NixOS-WSL host, tracked in [WORKWSL_PLAN.md](./WORKWSL_PLAN.md)
 - both WSL hosts accept the corporate CA during impure evaluation from either `ZSCALER_PEM_FILE=/path/to/zscaler.pem` or inline `ZSCALER_PEM`
 - installed WSL hosts persist the active corporate CA at `/var/lib/nixos-config/corporate-ca.pem`, so later on-device rebuilds do not need the PEM env passed again

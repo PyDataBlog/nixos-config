@@ -192,12 +192,6 @@
                 else
                   "false"
               }" = "true" ]
-              [ "${
-                if builtins.any (name: pkgs.lib.hasPrefix "gh-" name) wslbootstrapSystemPackageNames then
-                  "true"
-                else
-                  "false"
-              }" = "true" ]
 
               touch "$out"
             '';

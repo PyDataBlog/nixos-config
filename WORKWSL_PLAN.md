@@ -104,7 +104,7 @@ That means:
 
 `wslbootstrap` is even narrower than that:
 
-- just the repo/bootstrap tooling that is always needed (`git` and `gh`)
+- just the repo/bootstrap tooling that is always needed (`git`)
 - no developer stack
 - no Home Manager feature layering beyond what is absolutely required
 - just enough system state to boot, trust the corporate CA, and reach the network successfully
@@ -621,6 +621,18 @@ Do not use `/mnt/c/...`.
 cd ~
 git clone https://github.com/PyDataBlog/nixos-config.git
 cd nixos-config
+```
+
+If GitHub CLI is needed before switching to `workwsl`, pull it in ephemerally instead of baking it into `wslbootstrap`:
+
+```bash
+nix shell nixpkgs#gh
+```
+
+For a one-off command:
+
+```bash
+nix shell nixpkgs#gh -c gh auth status
 ```
 
 ### 6. Switch to the real `workwsl` host
