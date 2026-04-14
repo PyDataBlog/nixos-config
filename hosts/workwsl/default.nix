@@ -39,6 +39,8 @@
     userPasswordHashKey = "user-password-hash";
   };
 
+  repo.workNetwork.extendNixpkgsCacert = lib.mkDefault true;
+
   nix.settings = {
     extra-substituters = [ "https://nix-community.cachix.org" ];
     extra-trusted-public-keys = [

@@ -114,6 +114,9 @@
           [ "${
             if workwslCheck.config.repo.workNetwork.certificateFile == null then "true" else "false"
           }" = "true" ]
+          [ "${
+            if workwslCheck.config.repo.workNetwork.extendNixpkgsCacert then "true" else "false"
+          }" = "true" ]
           [ "${workwslCheck.config.repo.workNetwork.persistedCertificateFile}" = "${corporateCaForChecks}" ]
           [ "${workwslCheck.config.repo.workNetwork.persistedCertificatePath}" = "/var/lib/nixos-config/corporate-ca.pem" ]
           [ "${workwslCheck.config.nix.settings.ssl-cert-file}" = "${workwslCaBundle}" ]
@@ -186,6 +189,12 @@
         wslbootstrap-bootstrap-tools-smoke =
           pkgs.runCommandLocal "wslbootstrap-bootstrap-tools-smoke" { }
             ''
+              [ "${
+                if wslbootstrapCheck.config.repo.workNetwork.extendNixpkgsCacert then
+                  "true"
+                else
+                  "false"
+              }" = "false" ]
               [ "${
                 if builtins.any (name: pkgs.lib.hasPrefix "git-" name) wslbootstrapSystemPackageNames then
                   "true"
