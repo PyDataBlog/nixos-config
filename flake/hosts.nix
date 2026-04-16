@@ -16,6 +16,4 @@ let
 in
 {
   flake.nixosConfigurations.desktop = mkHost ../hosts/desktop;
-  flake.nixosConfigurations.workwsl = mkHost ../hosts/workwsl;
-  flake.nixosConfigurations.wslbootstrap = mkHost ../hosts/wslbootstrap;
 }

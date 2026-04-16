@@ -12,7 +12,6 @@
 Scope:
 
 - `desktop` only
-- `wslbootstrap` and `workwsl` are out of scope for this document
 
 This repo is set up so the encrypted secrets live in Git, while decryption is
 possible through:
