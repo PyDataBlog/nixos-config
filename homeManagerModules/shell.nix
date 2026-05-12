@@ -1,5 +1,47 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
+let
+  repoRoot = "${config.home.homeDirectory}/Projects/nixos-config";
+  updateSystem = pkgs.writeShellApplication {
+    name = "update-system";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.gnugrep
+      pkgs.nix-output-monitor
+    ];
+    text = ''
+      cd "${repoRoot}"
+      nix flake update
+      sudo -v
+
+      switch_log="$(mktemp)"
+      trap 'rm -f "$switch_log"' EXIT
+
+      set +e
+      sudo nixos-rebuild switch --flake .#desktop --accept-flake-config --log-format raw 2>&1 \
+        | tee "$switch_log" \
+        | nom
+      switch_status=''${PIPESTATUS[0]}
+      set -e
+
+      if [ "$switch_status" -eq 0 ]; then
+        exit 0
+      fi
+
+      if grep -Fq "Pre-switch check 'switchInhibitors' failed" "$switch_log"; then
+        printf '%s\n' \
+          "Critical component change detected; installing the new generation for next boot instead." \
+          "Reboot after this command completes to activate it."
+        sudo nixos-rebuild boot --flake .#desktop --accept-flake-config --log-format raw |& nom
+        exit 0
+      fi
+
+      exit "$switch_status"
+    '';
+  };
+in
 {
+  home.packages = [ updateSystem ];
+
   home.sessionVariables = {
     UV_NO_MANAGED_PYTHON = "1";
     UV_PYTHON_DOWNLOADS = "never";

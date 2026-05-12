@@ -4,6 +4,11 @@ let
   userDefinitions = import ../users;
   primaryUsername = userDefinitions.primary;
   primaryUser = userDefinitions.users.${primaryUsername};
+  nixpkgsConfig = {
+    allowUnfree = true;
+    allowInsecurePredicate = pkg:
+      builtins.elem (inputs.nixpkgs.lib.getName pkg) [ "ventoy-gtk3" ];
+  };
 
   mkPkgs =
     {
@@ -12,20 +17,14 @@ let
     }:
     import inputs.nixpkgs {
       inherit system overlays;
-      config = {
-        allowUnfree = true;
-        permittedInsecurePackages = [ "ventoy-gtk3-1.1.10" ];
-      };
+      config = nixpkgsConfig;
     };
 
   mkPkgsStable =
     system:
     import inputs.nixpkgs-stable {
       inherit system;
-      config = {
-        allowUnfree = true;
-        permittedInsecurePackages = [ "ventoy-gtk3-1.1.10" ];
-      };
+      config = nixpkgsConfig;
     };
 
   neovimNightlyOverlay = import ../overlays/neovim-nightly.nix { inherit inputs; };
@@ -36,6 +35,7 @@ in
     mkPkgs
     mkPkgsStable
     neovimNightlyOverlay
+    nixpkgsConfig
     primaryUser
     primaryUsername
     userDefinitions

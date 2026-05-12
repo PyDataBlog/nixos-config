@@ -10,6 +10,7 @@
     ../homeManagerModules/shell.nix
     ../homeManagerModules/nixvim/default.nix
     ../homeManagerModules/emacs.nix
+    ../homeManagerModules/qutebrowser.nix
     ../homeManagerModules/base.nix
     ../homeManagerModules/clipboard.nix
     ../homeManagerModules/mimeapps.nix

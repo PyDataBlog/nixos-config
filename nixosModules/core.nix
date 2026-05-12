@@ -239,8 +239,7 @@ in
       "nix-command"
       "flakes"
     ];
-    nixpkgs.config.allowUnfree = true;
-    nixpkgs.config.permittedInsecurePackages = [ "ventoy-gtk3-1.1.10" ];
+    nixpkgs.config = repoLib.nixpkgsConfig;
 
     programs.nh = {
       enable = true;
