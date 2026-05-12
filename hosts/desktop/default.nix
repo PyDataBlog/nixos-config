@@ -7,10 +7,14 @@
 {
   imports = [
     ./hardware-configuration.nix
-    ../../features/nixos/base.nix
-    ../../features/nixos/docker.nix
-    ../../features/nixos/desktop.nix
-    ../../features/nixos/niri-noctalia.nix
+    ../../nixosModules/core.nix
+    ../../nixosModules/packages.nix
+    ../../nixosModules/docker.nix
+    ../../nixosModules/desktop.nix
+    ../../nixosModules/desktop-services.nix
+    ../../nixosModules/desktop-packages.nix
+    ../../nixosModules/niri.nix
+    ../../nixosModules/noctalia.nix
   ];
 
   boot.loader.systemd-boot.enable = true;

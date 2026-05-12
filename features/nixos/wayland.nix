@@ -1,4 +1,0 @@
-{ ... }:
-{
-  imports = [ ../../nixosModules/niri.nix ];
-}

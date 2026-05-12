@@ -1,4 +1,0 @@
-{ ... }:
-{
-  imports = [ ../../homeManagerModules/ghostty.nix ];
-}
