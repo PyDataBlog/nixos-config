@@ -51,7 +51,7 @@ jobs:
             extra-trusted-public-keys = noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4=
 
       - name: Enable Magic Nix Cache
-        uses: DeterminateSystems/magic-nix-cache-action@1828eb4e5414b8dfe36daae53ea3e4b8c3fdec7a
+        uses: DeterminateSystems/magic-nix-cache-action@908b263ff629f4cc17666315b7fd3ec127c6244d
 
       - name: Materialize corporate CA
         env:
